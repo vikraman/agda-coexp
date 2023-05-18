@@ -1,0 +1,63 @@
+on: [push, pull_request]
+name: ci
+
+env:
+  AGDA_VERSION: 2.6.2.2
+  STDLIB_VERSION: 1.7.2
+  GHC_VERSION: 9.2.7
+  LTS_VERSION: 20.21
+
+jobs:
+  agda:
+    name: agda
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Haskell
+        uses: haskell/actions/setup@v1
+        with:
+          ghc-version: ${{ env.GHC_VERSION }}
+          enable-stack: true
+          stack-version: 'latest'
+
+      - name: Set PATH
+        run: |
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Cache stack workspace
+        uses: actions/cache@v2
+        id: cache-stack
+        with:
+          path: ~/.stack
+          key: ${{ runner.os }}-stack-ghc-${{ env.GHC_VERSION }}-agda-${{ env.AGDA_VERSION }}
+
+      - name: Install Agda
+        run: stack --resolver lts-${{ env.LTS_VERSION }} --system-ghc install Agda-${{ env.AGDA_VERSION }}
+
+      - name: Install stdlib
+        run: |
+          mkdir -p $HOME/.agda
+          cd $HOME/.agda
+          wget https://github.com/agda/agda-stdlib/archive/v${{ env.STDLIB_VERSION }}.tar.gz
+          tar -xzvf v${{ env.STDLIB_VERSION }}.tar.gz
+          mv agda-stdlib-${{ env.STDLIB_VERSION }} agda-stdlib
+          echo "~/.agda/agda-stdlib/standard-library.agda-lib" > libraries
+          cd -
+
+      - name: Checkout repo
+        uses: actions/checkout@v2
+
+      - name: Check
+        run: make -j3
+
+      - name: Generate html
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        run: |
+          ./index.sh
+          make html
+
+      - name: Deploy html
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        uses: JamesIves/github-pages-deploy-action@4.1.5
+        with:
+          branch: gh-pages
+          folder: html
