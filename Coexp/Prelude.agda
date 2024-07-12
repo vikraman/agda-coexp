@@ -16,3 +16,10 @@ open import Data.Nat
 recNat : ∀ {a} {A : Set a} -> A -> (A -> A) -> ℕ -> A
 recNat a f zero = a
 recNat a f (suc n) = f (recNat a f n)
+
+primNat : ∀ {a} {A : Set a} -> A -> (ℕ -> A -> A) -> ℕ -> A
+primNat a f zero = a
+primNat a f (suc n) = f n (primNat a f n)
+
+precNat : ∀ {a} {A : Set a} -> A -> (ℕ -> A -> A) -> ℕ -> A
+precNat a f n = recNat a (f n) n

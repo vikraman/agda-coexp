@@ -17,7 +17,7 @@ data Ty : Set where
 `Bool : Ty
 `Bool = `Unit `+ `Unit
 
-open Ctx Ty
+open Ctx Ty public
 
 syntax Tm Γ A = Γ ⊢ A
 
@@ -105,7 +105,7 @@ wk-tm π (colam e) = colam (wk-tm (wk-cong π) e)
 wk-tm π (coapp e1 e2) = coapp (wk-tm π e1) (wk-tm π e2)
 wk-tm π (lett e1 e2) = lett (wk-tm π e1) (wk-tm (wk-cong π) e2)
 
-open WkTm Tm wk-tm
+open WkTm Tm wk-tm public
 
 sub-tm : Sub Γ Δ -> Δ ⊢ A -> Γ ⊢ A
 sub-tm θ (nat n) = nat n
@@ -166,7 +166,7 @@ wk-tm-val π (inl v) (inl {{ϕ}}) = inl {{wk-tm-val π v ϕ}}
 wk-tm-val π (inr v) (inr {{ϕ}}) = inr {{wk-tm-val π v ϕ}}
 wk-tm-val π (lett v1 v2) (lett {{ϕ1}} {{ϕ2}}) = lett {{wk-tm-val π v1 ϕ1}} {{wk-tm-val (wk-cong π) v2 ϕ2}}
 
-open SubTm wk-tm-val var var
+open SubTm wk-tm-val var var public
 
 sub-tm-val : (θ : Sub Γ Δ) (ϕ : isSub θ) -> (v : Δ ⊢ A) (ψ : isVal v) -> isVal (sub-tm θ v)
 sub-tm-val θ ϕ (nat n) nat = nat
