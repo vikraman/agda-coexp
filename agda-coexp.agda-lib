@@ -1,3 +1,4 @@
 name: agda-coexp
 depend: standard-library
 include: .
+flags: --rewriting

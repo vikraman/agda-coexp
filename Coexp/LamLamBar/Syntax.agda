@@ -10,7 +10,7 @@ infixr 35 _`+_
 infixr 25 _`⇒_
 
 data Ty : Set where
-    `Unit `Void `Nat : Ty
+    `Unit `Nat : Ty
     _* : Ty -> Ty
     _`×_ _`⇒_ _`+_ : Ty -> Ty -> Ty
 
@@ -59,10 +59,6 @@ data Tm : Ctx -> Ty -> Set where
        -----------
         Γ ⊢ `Unit
 
-  absurd : Γ ⊢ `Void
-         ------------
-         -> Γ ⊢ A
-
   inl : Γ ⊢ A
       ---------------
       -> Γ ⊢ A `+ B
@@ -83,9 +79,16 @@ data Tm : Ctx -> Ty -> Set where
         --------------------------
              -> Γ ⊢ B
 
-  lett : Γ ⊢ A -> (Γ ∙ A) ⊢ B
-       -----------------------
-           -> Γ ⊢ B
+-- syntactic sugar
+lett : Γ ⊢ A -> (Γ ∙ A) ⊢ B
+     -----------------------
+         -> Γ ⊢ B
+lett e1 e2 = app (lam e2) e1
+
+absurd : Γ ⊢ `Unit *
+       ----------------
+       -> Γ ⊢ A
+absurd = coapp (inl unit)
 
 wk-tm : Wk Γ Δ -> Δ ⊢ A -> Γ ⊢ A
 wk-tm π (nat n) = nat n
@@ -97,13 +100,11 @@ wk-tm π (pair e1 e2) = pair (wk-tm π e1) (wk-tm π e2)
 wk-tm π (fst e) = fst (wk-tm π e)
 wk-tm π (snd e) = snd (wk-tm π e)
 wk-tm π unit = unit
-wk-tm π (absurd e) = absurd (wk-tm π e)
 wk-tm π (inl e) = inl (wk-tm π e)
 wk-tm π (inr e) = inr (wk-tm π e)
 wk-tm π (case e1 e2 e3) = case (wk-tm π e1) (wk-tm (wk-cong π) e2) (wk-tm (wk-cong π) e3)
 wk-tm π (colam e) = colam (wk-tm (wk-cong π) e)
 wk-tm π (coapp e1 e2) = coapp (wk-tm π e1) (wk-tm π e2)
-wk-tm π (lett e1 e2) = lett (wk-tm π e1) (wk-tm (wk-cong π) e2)
 
 open WkTm Tm wk-tm public
 
@@ -119,7 +120,6 @@ sub-tm θ (pair e1 e2) = pair (sub-tm θ e1) (sub-tm θ e2)
 sub-tm θ (fst e) = fst (sub-tm θ e)
 sub-tm θ (snd e) = snd (sub-tm θ e)
 sub-tm θ unit = unit
-sub-tm θ (absurd e) = absurd (sub-tm θ e)
 sub-tm θ (inl e) = inl (sub-tm θ e)
 sub-tm θ (inr e) = inr (sub-tm θ e)
 sub-tm θ (case e1 e2 e3) =
@@ -129,8 +129,6 @@ sub-tm θ (case e1 e2 e3) =
 sub-tm θ (colam e) =
   colam (sub-tm (sub-ex (sub-wk (wk-wk wk-id) θ) (var h)) e)
 sub-tm θ (coapp e1 e2) = coapp (sub-tm θ e1) (sub-tm θ e2)
-sub-tm θ (lett e1 e2) =
-  lett (sub-tm θ e1) (sub-tm (sub-ex (sub-wk (wk-wk wk-id) θ) (var h)) e2)
 
 variable
   n : ℕ
@@ -149,7 +147,6 @@ data isVal {Γ} : Γ ⊢ A -> Set where
   unit : isVal unit
   inl : ∀ {B} -> {{isVal v}} -> isVal (inl {B = B} v)
   inr : ∀ {A} -> {{isVal v}} -> isVal (inr {A = A} v)
-  lett : {{isVal e1}} -> {{isVal e2}} -> isVal (lett e1 e2)
 
 open Val isVal
 
@@ -164,7 +161,6 @@ wk-tm-val π (pair v1 v2) (pair {{ϕ1}} {{ϕ2}}) = pair {{wk-tm-val π v1 ϕ1}} 
 wk-tm-val π unit unit = unit
 wk-tm-val π (inl v) (inl {{ϕ}}) = inl {{wk-tm-val π v ϕ}}
 wk-tm-val π (inr v) (inr {{ϕ}}) = inr {{wk-tm-val π v ϕ}}
-wk-tm-val π (lett v1 v2) (lett {{ϕ1}} {{ϕ2}}) = lett {{wk-tm-val π v1 ϕ1}} {{wk-tm-val (wk-cong π) v2 ϕ2}}
 
 open SubTm wk-tm-val var var public
 
@@ -179,9 +175,33 @@ sub-tm-val θ ϕ (pair v1 v2) (pair {{ψ1}} {{ψ2}}) = pair {{sub-tm-val θ ϕ v
 sub-tm-val θ ϕ unit unit = unit
 sub-tm-val θ ϕ (inl v) (inl {{ψ}}) = inl {{sub-tm-val θ ϕ v ψ}}
 sub-tm-val θ ϕ (inr v) (inr {{ψ}}) = inr {{sub-tm-val θ ϕ v ψ}}
-sub-tm-val θ ϕ (lett v1 v2) (lett {{ψ1}} {{ψ2}}) =
-  lett {{sub-tm-val θ ϕ v1 ψ1}}
-       {{sub-tm-val (sub-ex (sub-wk (wk-wk wk-id) θ) (var h)) (sub-ex (sub-wk-sub (wk-wk wk-id) θ ϕ) var) v2 ψ2}}
+
+syntax Ev Γ C A = Γ ⊢ C ⇛ A
+
+data Ev (Γ : Ctx) (C : Ty) : Ty -> Set where
+
+  ø :
+      ----------------
+        Γ ⊢ C ⇛ C
+
+  app-r : (e : Γ ⊢ A `⇒ B) -> (E : Γ ⊢ C ⇛ A)
+        ------------------------------------------------------------
+        -> Γ ⊢ C ⇛ B
+
+  app-l : (E : Γ ⊢ C ⇛ (A `⇒ B)) -> (v : Γ ⊢ A) {{ϕ : isVal v}}
+        ------------------------------------------------------------
+        -> Γ ⊢ C ⇛ B
+
+infix 5 _[[_]]
+_[[_]] : (E : Γ ⊢ A ⇛ B) -> (e : Γ ⊢ A) -> Γ ⊢ B
+ø [[ e ]] = e
+app-r e1 E [[ e ]] = app e1 (E [[ e ]])
+app-l E v [[ e ]] = app (E [[ e ]]) v
+
+wk-ev : Wk Γ Δ -> Δ ⊢ A ⇛ B -> Γ ⊢ A ⇛ B
+wk-ev π ø = ø
+wk-ev π (app-r e E) = app-r (wk-tm π e) (wk-ev π E)
+wk-ev π (app-l E v {{ϕ}}) = app-l (wk-ev π E) (wk-tm π v) {{wk-tm-val π v ϕ}}
 
 syntax Eq Γ A e1 e2 = Γ ⊢ e1 ≈ e2 ∶ A
 
@@ -261,12 +281,28 @@ data Eq (Γ : Ctx) : (A : Ty) -> Γ ⊢ A -> Γ ⊢ A -> Set where
              ----------------------------------------------------------
              -> Γ ⊢ coapp (colam e) v ≈ sub-tm (sub-ex sub-id v) e ∶ B
 
-  -- coexponential eta: (~λx.~vx) ≈ v
-  colam-eta : (v : Γ ⊢ A `+ B) {{ϕ : isVal v}}
+  -- coexponential eta: (~λx.~ex) ≈ e
+  colam-eta : (e : Γ ⊢ A `+ B)
             -------------------------------------------------
-            -> Γ ⊢ colam (coapp (wk v) (var h)) ≈ v ∶ A `+ B
+            -> Γ ⊢ colam (coapp (wk e) (var h)) ≈ e ∶ A `+ B
 
-  -- let beta: (let x = e in x) ≈ e
-  lett-unit :
-            --------------------------
-            Γ ⊢ lett e (var h) ≈ e ∶ A
+  -- control effects
+  colam-const : (e : Γ ⊢ B)
+              -------------------------------------
+              -> Γ ⊢ colam (wk e) ≈ inr e ∶ A `+ B
+
+  colam-inr-pass : (e : Γ ⊢ B) (E : Γ ⊢ B ⇛ C)
+                 ----------------------------------------------------------------------------------------------------
+                 -> Γ ⊢ colam (wk-ev (wk-wk wk-id) E [[ coapp (inr (wk e)) (var h) ]]) ≈ inr (E [[ e ]]) ∶ A `+ C
+
+  colam-inl-jump : (e : Γ ⊢ A) (E : Γ ⊢ B ⇛ C)
+                 ----------------------------------------------------------------------------------------------------
+                 -> Γ ⊢ colam (wk-ev (wk-wk wk-id) E [[ coapp (inl (wk e)) (var h) ]]) ≈ inl e ∶ A `+ C
+
+  case-colam-beta : (v : (Γ ∙ A *) ⊢ B) {{ϕ : isVal v}} -> (e1 : (Γ ∙ A) ⊢ C) (e2 : (Γ ∙ B) ⊢ C)
+                  ---------------------------------------------------------------------------------------------------------------
+                  -> Γ ⊢ case (colam v) e1 e2 ≈ case (colam (sub-tm (sub-ex (sub-wk (wk-wk wk-id) sub-id) v) e2)) e1 (var h) ∶ C
+
+  case-zeta : (e : Γ ⊢ A `+ B) (e1 : (Γ ∙ A) ⊢ C) (e2 : (Γ ∙ B) ⊢ C) (E : Γ ⊢ C ⇛ D)
+            ------------------------------------------------------------------------------------------------------------
+            -> Γ ⊢ E [[ case e e1 e2 ]] ≈ case e (wk-ev (wk-wk wk-id) E [[ e1 ]]) (wk-ev (wk-wk wk-id) E [[ e2 ]]) ∶ D

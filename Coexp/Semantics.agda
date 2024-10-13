@@ -108,11 +108,23 @@ module Cont (R : Set) where
   councurry : (Y × (X -> R) -> T Z) -> (Y -> T (X ⊎ Z))
   councurry f y k = f (y , inj₁ ； k) (inj₂ ； k)
 
+  councurry-cocurry : (f : Y -> T (X ⊎ Z)) -> councurry (cocurry f) ≡ f
+  councurry-cocurry f =
+    funext \y -> funext \k ->
+      cong (f y) (funext \{ (inj₁ x) -> refl ; (inj₂ z) -> refl })
+
+  cocurry-councurry : (g : Y × (X -> R) -> T Z) -> cocurry (councurry g) ≡ g
+  cocurry-councurry g =
+    funext \(y , k) -> refl
+
   coeval : Y -> T (X ⊎ (Y × (X -> R)))
   coeval = councurry T.eta
 
-  coeval' : (X ⊎ Y) × (X -> R) -> T Y
-  coeval' = cocurry T.eta
+  couneval' : (X ⊎ Y) × (X -> R) -> T Y
+  couneval' = cocurry T.eta
 
-  coeval'' : T (X ⊎ Y) × (X -> R) -> T Y
-  coeval'' = cocurry id
+  couneval : T (X ⊎ Y) × (X -> R) -> T Y
+  couneval = cocurry id
+
+  𝒜 : X × (X -> R) -> T Y
+  𝒜 = cocurry (inj₁ ； T.eta)
