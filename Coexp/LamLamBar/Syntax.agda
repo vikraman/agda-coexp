@@ -91,20 +91,20 @@ absurd : Γ ⊢ `Unit *
 absurd = coapp (inl unit)
 
 wk-tm : Wk Γ Δ -> Δ ⊢ A -> Γ ⊢ A
-wk-tm π (nat n) = nat n
-wk-tm π (zero? e) = zero? (wk-tm π e)
-wk-tm π (var x) = var (wk-mem π x)
-wk-tm π (lam e) = lam (wk-tm (wk-cong π) e)
-wk-tm π (app e1 e2) = app (wk-tm π e1) (wk-tm π e2)
-wk-tm π (pair e1 e2) = pair (wk-tm π e1) (wk-tm π e2)
-wk-tm π (fst e) = fst (wk-tm π e)
-wk-tm π (snd e) = snd (wk-tm π e)
-wk-tm π unit = unit
-wk-tm π (inl e) = inl (wk-tm π e)
-wk-tm π (inr e) = inr (wk-tm π e)
+wk-tm π (nat n)         = nat n
+wk-tm π (zero? e)       = zero? (wk-tm π e)
+wk-tm π (var x)         = var (wk-mem π x)
+wk-tm π (lam e)         = lam (wk-tm (wk-cong π) e)
+wk-tm π (app e1 e2)     = app (wk-tm π e1) (wk-tm π e2)
+wk-tm π (pair e1 e2)    = pair (wk-tm π e1) (wk-tm π e2)
+wk-tm π (fst e)         = fst (wk-tm π e)
+wk-tm π (snd e)         = snd (wk-tm π e)
+wk-tm π unit            = unit
+wk-tm π (inl e)         = inl (wk-tm π e)
+wk-tm π (inr e)         = inr (wk-tm π e)
 wk-tm π (case e1 e2 e3) = case (wk-tm π e1) (wk-tm (wk-cong π) e2) (wk-tm (wk-cong π) e3)
-wk-tm π (colam e) = colam (wk-tm (wk-cong π) e)
-wk-tm π (coapp e1 e2) = coapp (wk-tm π e1) (wk-tm π e2)
+wk-tm π (colam e)       = colam (wk-tm (wk-cong π) e)
+wk-tm π (coapp e1 e2)   = coapp (wk-tm π e1) (wk-tm π e2)
 
 open WkTm Tm wk-tm public
 
@@ -137,44 +137,44 @@ variable
   e e1 e2 e3 e4 : Γ ⊢ A
 
 data isVal {Γ} : Γ ⊢ A -> Set where
-  nat : isVal (nat n)
-  zero? : {{isVal v}} -> isVal (zero? v)
-  var : isVal (var x)
-  lam : isVal (lam e)
-  fst : {{isVal v}} -> isVal (fst v)
-  snd : {{isVal v}} -> isVal (snd v)
-  pair : {{isVal v1}} -> {{isVal v2}} -> isVal (pair v1 v2)
-  unit : isVal unit
-  inl : ∀ {B} -> {{isVal v}} -> isVal (inl {B = B} v)
-  inr : ∀ {A} -> {{isVal v}} -> isVal (inr {A = A} v)
+  instance nat : isVal (nat n)
+  instance zero? : {{isVal v}} -> isVal (zero? v)
+  instance var : isVal (var x)
+  instance lam : isVal (lam e)
+  instance fst : {{isVal v}} -> isVal (fst v)
+  instance snd : {{isVal v}} -> isVal (snd v)
+  instance pair : {{isVal v1}} -> {{isVal v2}} -> isVal (pair v1 v2)
+  instance unit : isVal unit
+  instance inl : ∀ {B} -> {{isVal v}} -> isVal (inl {B = B} v)
+  instance inr : ∀ {A} -> {{isVal v}} -> isVal (inr {A = A} v)
 
 open Val isVal
 
-wk-tm-val : (π : Wk Γ Δ) -> (v : Δ ⊢ A) (ϕ : isVal v) -> isVal (wk-tm π v)
-wk-tm-val π (nat n) nat = nat
-wk-tm-val π (zero? v) (zero? {{ϕ}}) = zero? {{wk-tm-val π v ϕ}}
-wk-tm-val π (var i) var = var
-wk-tm-val π (lam v) lam = lam
-wk-tm-val π (fst v) (fst {{ϕ}}) = fst {{wk-tm-val π v ϕ}}
-wk-tm-val π (snd v) (snd {{ϕ}}) = snd {{wk-tm-val π v ϕ}}
-wk-tm-val π (pair v1 v2) (pair {{ϕ1}} {{ϕ2}}) = pair {{wk-tm-val π v1 ϕ1}} {{wk-tm-val π v2 ϕ2}}
-wk-tm-val π unit unit = unit
-wk-tm-val π (inl v) (inl {{ϕ}}) = inl {{wk-tm-val π v ϕ}}
-wk-tm-val π (inr v) (inr {{ϕ}}) = inr {{wk-tm-val π v ϕ}}
+wk-tm-val : (π : Wk Γ Δ) -> (v : Δ ⊢ A) {{ϕ : isVal v}} -> isVal (wk-tm π v)
+wk-tm-val π (nat n)      {{nat}}   = nat
+wk-tm-val π (zero? v)    {{zero?}} = zero? {{wk-tm-val π v}}
+wk-tm-val π (var i)      {{var}}   = var
+wk-tm-val π (lam v)      {{lam}}   = lam
+wk-tm-val π (fst v)      {{fst}}   = fst {{wk-tm-val π v}}
+wk-tm-val π (snd v)      {{snd}}   = snd {{wk-tm-val π v}}
+wk-tm-val π (pair v1 v2) {{pair}}  = pair {{wk-tm-val π v1}} {{wk-tm-val π v2}}
+wk-tm-val π unit         {{unit}}  = unit
+wk-tm-val π (inl v)      {{inl}}   = inl {{wk-tm-val π v}}
+wk-tm-val π (inr v)      {{inr}}   = inr {{wk-tm-val π v}}
 
 open SubTm wk-tm-val var var public
 
-sub-tm-val : (θ : Sub Γ Δ) (ϕ : isSub θ) -> (v : Δ ⊢ A) (ψ : isVal v) -> isVal (sub-tm θ v)
-sub-tm-val θ ϕ (nat n) nat = nat
-sub-tm-val θ ϕ (zero? v) (zero? {{ψ}}) = zero? {{sub-tm-val θ ϕ v ψ}}
-sub-tm-val θ ϕ (var i) var = sub-mem-val θ ϕ i
-sub-tm-val θ ϕ (lam v) lam = lam
-sub-tm-val θ ϕ (fst v) (fst {{ψ}}) = fst {{sub-tm-val θ ϕ v ψ}}
-sub-tm-val θ ϕ (snd v) (snd {{ψ}}) = snd {{sub-tm-val θ ϕ v ψ}}
-sub-tm-val θ ϕ (pair v1 v2) (pair {{ψ1}} {{ψ2}}) = pair {{sub-tm-val θ ϕ v1 ψ1}} {{sub-tm-val θ ϕ v2 ψ2}}
-sub-tm-val θ ϕ unit unit = unit
-sub-tm-val θ ϕ (inl v) (inl {{ψ}}) = inl {{sub-tm-val θ ϕ v ψ}}
-sub-tm-val θ ϕ (inr v) (inr {{ψ}}) = inr {{sub-tm-val θ ϕ v ψ}}
+sub-tm-val : (θ : Sub Γ Δ) (ϕ : isSub θ) -> (v : Δ ⊢ A) {{ψ : isVal v}} -> isVal (sub-tm θ v)
+sub-tm-val θ ϕ (nat n)      {{nat}}   = nat
+sub-tm-val θ ϕ (zero? v)    {{zero?}} = zero? {{sub-tm-val θ ϕ v}}
+sub-tm-val θ ϕ (var i)      {{var}}   = sub-mem-val θ ϕ i
+sub-tm-val θ ϕ (lam v)      {{lam}}   = lam
+sub-tm-val θ ϕ (fst v)      {{fst}}   = fst {{sub-tm-val θ ϕ v}}
+sub-tm-val θ ϕ (snd v)      {{snd}}   = snd {{sub-tm-val θ ϕ v}}
+sub-tm-val θ ϕ (pair v1 v2) {{pair}}  = pair {{sub-tm-val θ ϕ v1}} {{sub-tm-val θ ϕ v2}}
+sub-tm-val θ ϕ unit         {{unit}}  = unit
+sub-tm-val θ ϕ (inl v)      {{inl}}   = inl {{sub-tm-val θ ϕ v}}
+sub-tm-val θ ϕ (inr v)      {{inr}}   = inr {{sub-tm-val θ ϕ v}}
 
 syntax Ev Γ C A = Γ ⊢ C ⇛ A
 
@@ -194,14 +194,14 @@ data Ev (Γ : Ctx) (C : Ty) : Ty -> Set where
 
 infix 5 _[[_]]
 _[[_]] : (E : Γ ⊢ A ⇛ B) -> (e : Γ ⊢ A) -> Γ ⊢ B
-ø [[ e ]] = e
+ø [[ e ]]          = e
 app-r e1 E [[ e ]] = app e1 (E [[ e ]])
-app-l E v [[ e ]] = app (E [[ e ]]) v
+app-l E v [[ e ]]  = app (E [[ e ]]) v
 
 wk-ev : Wk Γ Δ -> Δ ⊢ A ⇛ B -> Γ ⊢ A ⇛ B
-wk-ev π ø = ø
+wk-ev π ø           = ø
 wk-ev π (app-r e E) = app-r (wk-tm π e) (wk-ev π E)
-wk-ev π (app-l E v {{ϕ}}) = app-l (wk-ev π E) (wk-tm π v) {{wk-tm-val π v ϕ}}
+wk-ev π (app-l E v) = app-l (wk-ev π E) (wk-tm π v) {{wk-tm-val π v}}
 
 syntax Eq Γ A e1 e2 = Γ ⊢ e1 ≈ e2 ∶ A
 
@@ -252,7 +252,7 @@ data Eq (Γ : Ctx) : (A : Ty) -> Γ ⊢ A -> Γ ⊢ A -> Set where
 
   -- unit eta
   unit-eta : (v : Γ ⊢ `Unit) {{ϕ : isVal v}}
-           --------------------------------
+           -----------------------------------------
            -> Γ ⊢ v ≈ unit ∶ `Unit
 
   -- function beta: (λx.e)v ≈ [v/x]e
@@ -267,11 +267,11 @@ data Eq (Γ : Ctx) : (A : Ty) -> Γ ⊢ A -> Γ ⊢ A -> Set where
 
   -- sum beta
   case-inl-beta : (v : Γ ⊢ A) {{ϕ : isVal v}} (e2 : (Γ ∙ A) ⊢ C) (e3 : (Γ ∙ B) ⊢ C)
-                -------------------------------------------------------------------
+                --------------------------------------------------------------------
                 -> Γ ⊢ case (inl v) e2 e3 ≈ sub-tm (sub-ex sub-id v) e2 ∶ C
 
   case-inr-beta : (v : Γ ⊢ B) {{ϕ : isVal v}} (e2 : (Γ ∙ A) ⊢ C) (e3 : (Γ ∙ B) ⊢ C)
-                -------------------------------------------------------------------
+                --------------------------------------------------------------------
                 -> Γ ⊢ case (inr v) e2 e3 ≈ sub-tm (sub-ex sub-id v) e3 ∶ C
 
   -- sum eta

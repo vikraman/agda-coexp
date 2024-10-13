@@ -69,7 +69,7 @@ module Ctx (Ty : Set) where
         sub-ε : isSub (sub-ε)
         sub-ex : (ϕ : isSub θ) -> (ψ : isVal v) -> isSub (sub-ex θ v)
 
-      module SubTm (wk-tm-val : ∀ {A Γ Δ} -> (π : Wk Γ Δ) -> (v : Tm Δ A) (ϕ : isVal v) -> isVal (wk-tm π v))
+      module SubTm (wk-tm-val : ∀ {A Γ Δ} -> (π : Wk Γ Δ) -> (v : Tm Δ A) {{ϕ : isVal v}} -> isVal (wk-tm π v))
                    (var : ∀ {A Γ} -> A ∈ Γ -> Tm Γ A)
                    (varIsVal : ∀ {Γ A} {x : A ∈ Γ} -> isVal (var x)) where
 
@@ -79,7 +79,7 @@ module Ctx (Ty : Set) where
 
         sub-wk-sub : (π : Wk Γ Δ) -> (θ : Sub Δ Ψ) (ϕ : isSub θ) -> isSub (sub-wk π θ)
         sub-wk-sub π sub-ε sub-ε = sub-ε
-        sub-wk-sub π (sub-ex θ e) (sub-ex ϕ ψ) = sub-ex (sub-wk-sub π θ ϕ) (wk-tm-val π e ψ)
+        sub-wk-sub π (sub-ex θ e) (sub-ex ϕ ψ) = sub-ex (sub-wk-sub π θ ϕ) (wk-tm-val π e {{ψ}})
 
         sub-id-sub : {Γ : Ctx} -> isSub (sub-id {Γ})
         sub-id-sub {ε} = sub-ε

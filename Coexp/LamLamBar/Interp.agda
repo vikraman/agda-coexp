@@ -18,21 +18,21 @@ open Cont R
 -- interpretation of types
 -- functions are kleisli arrows
 interpTy : Ty -> Set
-interpTy `Nat = ℕ
-interpTy `Unit = ⊤
-interpTy (A *) = interpTy A -> R
+interpTy `Nat     = ℕ
+interpTy `Unit    = ⊤
+interpTy (A *)    = interpTy A -> R
 interpTy (A `× B) = interpTy A × interpTy B
 interpTy (A `⇒ B) = interpTy A -> T (interpTy B)
 interpTy (A `+ B) = interpTy A ⊎ interpTy B
 
 -- interpretation of contexts
 interpCtx : Ctx -> Set
-interpCtx ε = ⊤
+interpCtx ε       = ⊤
 interpCtx (Γ ∙ A) = interpCtx Γ × interpTy A
 
 -- interpretation of membership
 interpIn : A ∈ Γ -> interpCtx Γ -> interpTy A
-interpIn h = proj₂
+interpIn h     = proj₂
 interpIn (t i) = proj₁ ； interpIn i
 
 -- interpretation of terms
@@ -61,8 +61,8 @@ interpTm (inl e) =
   interpTm e ； T.map inj₁
 interpTm (inr e) =
   interpTm e ； T.map inj₂
-interpTm (case e1 e2 e3) =
-  let f = interpTm e1 ; g1 = interpTm e2 ; g2 = interpTm e3
+interpTm (case e e1 e2) =
+  let f = interpTm e ; g1 = interpTm e1 ; g2 = interpTm e2
   in < id , f > ； T.tau ； T.map distl ； T.map S.[ g1 , g2 ] ； T.mu
 interpTm (colam e) =
   councurry (interpTm e)
@@ -72,9 +72,9 @@ interpTm (coapp e1 e2) =
 
 -- interpretation of weakening
 interpWk : Wk Γ Δ -> interpCtx Γ -> interpCtx Δ
-interpWk wk-ε = const tt
+interpWk wk-ε        = const tt
 interpWk (wk-cong π) = pmap (interpWk π) id
-interpWk (wk-wk π) = proj₁ ； interpWk π
+interpWk (wk-wk π)   = proj₁ ； interpWk π
 
 interpWk-id-coh : interpWk (wk-id {Γ}) ≡ id
 interpWk-id-coh {Γ = ε} = refl
@@ -82,9 +82,9 @@ interpWk-id-coh {Γ = Γ ∙ A} rewrite interpWk-id-coh {Γ = Γ} = refl
 {-# REWRITE interpWk-id-coh #-}
 
 interpWk-mem-coh : (π : Wk Γ Δ) (i : A ∈ Δ) -> interpIn (wk-mem π i) ≡ interpWk π ； interpIn i
-interpWk-mem-coh (wk-cong π) h = refl
-interpWk-mem-coh (wk-cong π) (t i) rewrite interpWk-mem-coh π i = refl
-interpWk-mem-coh (wk-wk π) h rewrite interpWk-mem-coh π h = refl
+interpWk-mem-coh (wk-cong π) h                                    = refl
+interpWk-mem-coh (wk-cong π) (t i) rewrite interpWk-mem-coh π i   = refl
+interpWk-mem-coh (wk-wk π) h rewrite interpWk-mem-coh π h         = refl
 interpWk-mem-coh (wk-wk π) (t i) rewrite interpWk-mem-coh π (t i) = refl
 
 interpWk-tm-coh : (π : Wk Γ Δ) (e : Δ ⊢ A) -> interpTm (wk-tm π e) ≡ interpWk π ； interpTm e
@@ -106,60 +106,60 @@ interpWk-tm-coh π (coapp e1 e2) rewrite interpWk-tm-coh π e1 | interpWk-tm-coh
 {-# REWRITE interpWk-tm-coh #-}
 
 -- interpretation of values
-interpVal : (e : Γ ⊢ A) -> isVal e -> interpCtx Γ -> interpTy A
-interpVal (nat n) nat = const n
-interpVal (zero? e) (zero? {{ϕ}}) = interpVal e ϕ ； is-zero
-interpVal (var i) var = interpIn i
-interpVal (lam e) lam = curry (interpTm e)
-interpVal (fst e) (fst {{ϕ}}) = interpVal e ϕ ； proj₁
-interpVal (snd e) (snd {{ϕ}}) = interpVal e ϕ ； proj₂
-interpVal (pair e1 e2) (pair {{ϕ1}} {{ϕ2}}) = < interpVal e1 ϕ1 , interpVal e2 ϕ2 >
-interpVal unit unit = const tt
-interpVal (inl e) (inl {{ϕ}}) = interpVal e ϕ ； inj₁
-interpVal (inr e) (inr {{ϕ}}) = interpVal e ϕ ； inj₂
+interpVal : (e : Γ ⊢ A) -> {{ϕ : isVal e}} -> interpCtx Γ -> interpTy A
+interpVal (nat n)      {{nat}}   = const n
+interpVal (zero? e)    {{zero?}} = interpVal e ； is-zero
+interpVal (var i)      {{var}}   = interpIn i
+interpVal (lam e)      {{lam}}   = curry (interpTm e)
+interpVal (fst e)      {{fst}}   = interpVal e ； proj₁
+interpVal (snd e)      {{snd}}   = interpVal e ； proj₂
+interpVal (pair e1 e2) {{pair}}  = < interpVal e1 , interpVal e2 >
+interpVal unit         {{unit}}  = const tt
+interpVal (inl e)      {{inl}}   = interpVal e ； inj₁
+interpVal (inr e)      {{inr}}   = interpVal e ； inj₂
 
 -- value interpretation coherence lemma
-interpVal-tm-coh : (e : Γ ⊢ A) (ϕ : isVal e) -> interpTm e ≡ interpVal e ϕ ； T.eta
-interpVal-tm-coh (nat n) nat = refl
-interpVal-tm-coh (zero? e) (zero? {{ϕ}})
-  rewrite interpVal-tm-coh e ϕ = refl
-interpVal-tm-coh (var i) var = refl
-interpVal-tm-coh (lam e) lam = refl
-interpVal-tm-coh (fst e) (fst {{ϕ}})
-  rewrite interpVal-tm-coh e ϕ = refl
-interpVal-tm-coh (snd e) (snd {{ϕ}})
-    rewrite interpVal-tm-coh e ϕ = refl
-interpVal-tm-coh (pair e1 e2) (pair {{ϕ1}} {{ϕ2}})
-  rewrite interpVal-tm-coh e1 ϕ1 | interpVal-tm-coh e2 ϕ2 = refl
-interpVal-tm-coh unit unit = refl
-interpVal-tm-coh (inl e) (inl {{ϕ}})
-  rewrite interpVal-tm-coh e ϕ = refl
-interpVal-tm-coh (inr e) (inr {{ϕ}})
-  rewrite interpVal-tm-coh e ϕ = refl
+interpVal-tm-coh : (e : Γ ⊢ A) {{ϕ : isVal e}} -> interpTm e ≡ interpVal e ； T.eta
+interpVal-tm-coh (nat n) {{nat}} = refl
+interpVal-tm-coh (zero? e) {{zero? {{ϕ}}}}
+  rewrite interpVal-tm-coh e {{ϕ}} = refl
+interpVal-tm-coh (var i) {{var}} = refl
+interpVal-tm-coh (lam e) {{lam}} = refl
+interpVal-tm-coh (fst e) {{fst {{ϕ}}}}
+  rewrite interpVal-tm-coh e {{ϕ}} = refl
+interpVal-tm-coh (snd e) {{snd {{ϕ}}}}
+    rewrite interpVal-tm-coh e {{ϕ}} = refl
+interpVal-tm-coh (pair e1 e2) {{pair {{ϕ1}} {{ϕ2}}}}
+  rewrite interpVal-tm-coh e1 {{ϕ1}} | interpVal-tm-coh e2 {{ϕ2}} = refl
+interpVal-tm-coh unit {{unit}} = refl
+interpVal-tm-coh (inl e) {{inl {{ϕ}}}}
+  rewrite interpVal-tm-coh e {{ϕ}} = refl
+interpVal-tm-coh (inr e) {{inr {{ϕ}}}}
+  rewrite interpVal-tm-coh e {{ϕ}} = refl
 
-interpVal-wk-coh : (π : Wk Γ Δ) (v : Δ ⊢ A) (ϕ : isVal v) -> interpVal (wk-tm π v) (wk-tm-val π v ϕ) ≡ interpWk π ； interpVal v ϕ
-interpVal-wk-coh π (nat n) nat = refl
-interpVal-wk-coh π (zero? v) (zero? {{ϕ}}) rewrite interpVal-wk-coh π v ϕ = refl
-interpVal-wk-coh π (var i) var = interpWk-mem-coh π i
-interpVal-wk-coh π (lam e) lam rewrite interpWk-tm-coh (wk-cong π) e = refl
-interpVal-wk-coh π (fst v) (fst {{ϕ}}) rewrite interpVal-wk-coh π v ϕ = refl
-interpVal-wk-coh π (snd v) (snd {{ϕ}}) rewrite interpVal-wk-coh π v ϕ = refl
-interpVal-wk-coh π (pair v1 v2) (pair {{ϕ1}} {{ϕ2}}) rewrite interpVal-wk-coh π v1 ϕ1 | interpVal-wk-coh π v2 ϕ2 = refl
-interpVal-wk-coh π unit unit = refl
-interpVal-wk-coh π (inl v) (inl {{ϕ}}) rewrite interpVal-wk-coh π v ϕ = refl
-interpVal-wk-coh π (inr v) (inr {{ϕ}}) rewrite interpVal-wk-coh π v ϕ = refl
+interpVal-wk-coh : (π : Wk Γ Δ) (v : Δ ⊢ A) {{ϕ : isVal v}} -> interpVal (wk-tm π v) {{wk-tm-val π v}} ≡ interpWk π ； interpVal v
+interpVal-wk-coh π (nat n) {{nat}} = refl
+interpVal-wk-coh π (zero? v) {{zero? {{ϕ}}}} rewrite interpVal-wk-coh π v {{ϕ}} = refl
+interpVal-wk-coh π (var i) {{var}} = interpWk-mem-coh π i
+interpVal-wk-coh π (lam e) {{lam}} rewrite interpWk-tm-coh (wk-cong π) e = refl
+interpVal-wk-coh π (fst v) {{fst {{ϕ}}}} rewrite interpVal-wk-coh π v {{ϕ}} = refl
+interpVal-wk-coh π (snd v) {{snd {{ϕ}}}} rewrite interpVal-wk-coh π v {{ϕ}} = refl
+interpVal-wk-coh π (pair v1 v2) {{pair {{ϕ1}} {{ϕ2}}}} rewrite interpVal-wk-coh π v1 {{ϕ1}} | interpVal-wk-coh π v2 {{ϕ2}} = refl
+interpVal-wk-coh π unit {{unit}} = refl
+interpVal-wk-coh π (inl v) {{inl {{ϕ}}}} rewrite interpVal-wk-coh π v {{ϕ}} = refl
+interpVal-wk-coh π (inr v) {{inr {{ϕ}}}} rewrite interpVal-wk-coh π v {{ϕ}} = refl
 {-# REWRITE interpVal-wk-coh #-}
 
 open Val isVal
 
 -- interpretation of substitutions
 interpSub : (θ : Sub Γ Δ) (ϕ : isSub θ) -> interpCtx Γ -> interpCtx Δ
-interpSub sub-ε sub-ε = const tt
-interpSub (sub-ex θ v) (sub-ex ϕ ψ) = < interpSub θ ϕ , interpVal v ψ >
+interpSub sub-ε sub-ε               = const tt
+interpSub (sub-ex θ v) (sub-ex ϕ ψ) = < interpSub θ ϕ , interpVal v {{ψ}} >
 
 interpSub-wk-coh : (π : Wk Γ Δ) -> (θ : Sub Δ Ψ) (ϕ : isSub θ) -> interpSub (sub-wk π θ) (sub-wk-sub π θ ϕ) ≡ interpWk π ； interpSub θ ϕ
 interpSub-wk-coh π sub-ε sub-ε = refl
-interpSub-wk-coh π (sub-ex θ v) (sub-ex ϕ ψ) rewrite interpSub-wk-coh π θ ϕ | interpVal-wk-coh π v ψ = refl
+interpSub-wk-coh π (sub-ex θ v) (sub-ex ϕ ψ) rewrite interpSub-wk-coh π θ ϕ | interpVal-wk-coh π v {{ψ}} = refl
 {-# REWRITE interpSub-wk-coh #-}
 
 interpSub-id-coh : {Γ : Ctx} -> interpSub (sub-id {Γ}) (sub-id-sub {Γ}) ≡ id
@@ -172,12 +172,12 @@ interpSub-id-coh {Γ ∙ A} =
   where open ≡-Reasoning
 {-# REWRITE interpSub-id-coh #-}
 
-interpSub-mem-val-coh : (θ : Sub Γ Δ) (ϕ : isSub θ) (i : A ∈ Δ) -> interpVal (sub-mem θ i) (sub-mem-val θ ϕ i) ≡ interpSub θ ϕ ； interpIn i
+interpSub-mem-val-coh : (θ : Sub Γ Δ) (ϕ : isSub θ) (i : A ∈ Δ) -> interpVal (sub-mem θ i) {{sub-mem-val θ ϕ i}} ≡ interpSub θ ϕ ； interpIn i
 interpSub-mem-val-coh (sub-ex θ e) (sub-ex ϕ ψ) h = refl
 interpSub-mem-val-coh (sub-ex θ e) (sub-ex ϕ ψ) (t i) rewrite interpSub-mem-val-coh θ ϕ i = refl
 
 interpSub-mem-tm-coh : (θ : Sub Γ Δ) (ϕ : isSub θ) (i : A ∈ Δ) -> interpTm (sub-mem θ i) ≡ interpSub θ ϕ ； interpIn i ； T.eta
-interpSub-mem-tm-coh θ ϕ i rewrite interpVal-tm-coh (sub-mem θ i) (sub-mem-val θ ϕ i) | interpSub-mem-val-coh θ ϕ i = refl
+interpSub-mem-tm-coh θ ϕ i rewrite interpVal-tm-coh (sub-mem θ i) {{sub-mem-val θ ϕ i}} | interpSub-mem-val-coh θ ϕ i = refl
 
 interpSub-tm-coh : (θ : Sub Γ Δ) (ϕ : isSub θ) -> (e : Δ ⊢ A) -> interpTm (sub-tm θ e) ≡ interpSub θ ϕ ； interpTm e
 interpSub-tm-coh θ ϕ (nat n) = refl
@@ -312,14 +312,14 @@ interpEv ø = id
 interpEv (app-r e E) f =
   let x = interpEv E f ; g = interpTm e
   in < g , x > ； T.beta ； T.map eval ； T.mu
-interpEv (app-l E v {{ϕ}}) f =
-  let x = interpVal v ϕ ; g = interpEv E f
+interpEv (app-l E v) f =
+  let x = interpVal v ; g = interpEv E f
   in < g , x > ； T.sigma ； T.map eval ； T.mu
 
 interpEv-Tm-coh : (E : Γ ⊢ A ⇛ B) (e : Γ ⊢ A) -> interpTm (E [[ e ]]) ≡ interpEv E (interpTm e)
 interpEv-Tm-coh ø e = refl
 interpEv-Tm-coh (app-r e1 E) e rewrite interpEv-Tm-coh E e = refl
-interpEv-Tm-coh (app-l E v {{ϕ}}) e rewrite interpEv-Tm-coh E e | interpVal-tm-coh v ϕ = refl
+interpEv-Tm-coh (app-l E v {{ϕ}}) e rewrite interpEv-Tm-coh E e | interpVal-tm-coh v {{ϕ}} = refl
 {-# REWRITE interpEv-Tm-coh #-}
 
 interpWk-ev-coh' : (π : Wk Γ Δ) (E : Δ ⊢ A ⇛ B) (e : Γ ⊢ A) -> interpTm (wk-ev π E [[ e ]]) ≡ interpEv (wk-ev π E) (interpTm e)
@@ -327,69 +327,73 @@ interpWk-ev-coh' π ø e = refl
 interpWk-ev-coh' π (app-r e1 E) e
   rewrite interpWk-ev-coh' π E e = refl
 interpWk-ev-coh' π (app-l E v {{ϕ}}) e =
-  interpTm (wk-ev π (app-l E v) [[ e ]])                                                                              ≡⟨ refl ⟩
-  interpTm (app-l (wk-ev π E) (wk-tm π v) {{wk-tm-val π v ϕ}} [[ e ]])                                                ≡⟨ refl ⟩
-  interpTm (app (wk-ev π E [[ e ]]) (wk-tm π v))                                                                      ≡⟨ refl ⟩
-  < interpTm (wk-ev π E [[ e ]]) , interpTm (wk-tm π v) > ； T.beta ； T.map eval ； T.mu                             ≡⟨ cong (\z -> < interpTm (wk-ev π E [[ e ]]) , z > ； T.beta ； T.map eval ； T.mu) (interpVal-tm-coh (wk-tm π v) (wk-tm-val π v ϕ)) ⟩
-  < interpTm (wk-ev π E [[ e ]]) , interpVal (wk-tm π v) (wk-tm-val π v ϕ) ； T.eta > ； T.beta ； T.map eval ； T.mu ≡⟨ refl ⟩
-  < interpTm (wk-ev π E [[ e ]]) , interpVal (wk-tm π v) (wk-tm-val π v ϕ) > ； T.sigma ； T.map eval ； T.mu         ≡⟨ refl ⟩
-  < interpEv (wk-ev π E) (interpTm e) , interpVal (wk-tm π v) (wk-tm-val π v ϕ) > ； T.sigma ； T.map eval ； T.mu    ≡⟨ refl ⟩
-  interpEv (app-l (wk-ev π E) (wk-tm π v) {{wk-tm-val π v ϕ}}) (interpTm e)                                           ≡⟨ refl ⟩
+  interpTm (wk-ev π (app-l E v) [[ e ]])                                                            ≡⟨ refl ⟩
+  interpTm (app-l (wk-ev π E) (wk-tm π v) [[ e ]])                                                  ≡⟨ refl ⟩
+  interpTm (app (wk-ev π E [[ e ]]) (wk-tm π v))                                                    ≡⟨ refl ⟩
+  < interpTm (wk-ev π E [[ e ]]) , interpTm (wk-tm π v) > ； T.beta ； T.map eval ； T.mu           ≡⟨ cong (\f -> < interpTm (wk-ev π E [[ e ]]) , f > ； T.beta ； T.map eval ； T.mu) (interpVal-tm-coh (wk-tm π v)) ⟩
+  < interpTm (wk-ev π E [[ e ]]) , interpVal (wk-tm π v) ； T.eta > ； T.beta ； T.map eval ； T.mu ≡⟨ refl ⟩
+  < interpTm (wk-ev π E [[ e ]]) , interpVal (wk-tm π v) > ； T.sigma ； T.map eval ； T.mu         ≡⟨ refl ⟩
+  < interpEv (wk-ev π E) (interpTm e) , interpVal (wk-tm π v) > ； T.sigma ； T.map eval ； T.mu    ≡⟨ refl ⟩
+  interpEv (app-l (wk-ev π E) (wk-tm π v)) (interpTm e)                                             ≡⟨ refl ⟩
   interpEv (wk-ev π (app-l E v)) (interpTm e) ∎
   where open ≡-Reasoning
+        instance _ = wk-tm-val π v {{ϕ}}
 
 interpEv-wk-coh : (π : Wk Γ Δ) (E : Δ ⊢ A ⇛ B) (f : interpCtx Δ -> T (interpTy A)) -> interpEv (wk-ev π E) (interpWk π ； f) ≡ interpWk π ； interpEv E f
 interpEv-wk-coh π ø f = refl
 interpEv-wk-coh π (app-r e E) f rewrite interpEv-wk-coh π E f = refl
-interpEv-wk-coh π (app-l E v {{ϕ}}) f rewrite interpEv-wk-coh π E f | interpVal-wk-coh π v ϕ = refl
+interpEv-wk-coh π (app-l E v {{ϕ}}) f rewrite interpEv-wk-coh π E f | interpVal-wk-coh π v {{ϕ}} = refl
 
 interpEv-wk-coh' : {e : Γ ⊢ A} (E : Γ ⊢ B ⇛ C)
                 -> interpEv (wk-ev (wk-wk {A = A *} (wk-id {Γ = Γ})) E) (< proj₁ ； interpTm e ； T.map inj₁ , proj₂ > ； couneval)
                  ≡ < proj₁ ； interpTm e ； T.map inj₁ , proj₂ > ； couneval
 interpEv-wk-coh' ø = refl
 interpEv-wk-coh' {e = e1} (app-r e E) =
-  interpEv (wk-ev π1 (app-r e E)) (< proj₁ ； interpTm e1 ； T.map inj₁ , proj₂ > ； couneval)                                                                       ≡⟨ refl ⟩
-  interpEv (app-r (wk-tm π1 e) (wk-ev π1 E)) (< proj₁ ； interpTm e1 ； T.map inj₁ , proj₂ > ； couneval)                                                            ≡⟨ refl ⟩
-  < interpTm (wk-tm π1 e) , interpEv (wk-ev π1 E) (< proj₁ ； interpTm e1 ； T.map inj₁ , proj₂ > ； couneval) > ； T.beta ； T.map eval ； T.mu                     ≡⟨ cong (\f -> < interpTm (wk-tm π1 e) , f > ； T.beta ； T.map eval ； T.mu) (interpEv-wk-coh' {e = e1} E) ⟩
+  interpEv (wk-ev π1 (app-r e E)) (< proj₁ ； interpTm e1 ； T.map inj₁ , proj₂ > ； couneval)                                                    ≡⟨ refl ⟩
+  interpEv (app-r (wk-tm π1 e) (wk-ev π1 E)) (< proj₁ ； interpTm e1 ； T.map inj₁ , proj₂ > ； couneval)                                         ≡⟨ refl ⟩
+  < interpTm (wk-tm π1 e) , interpEv (wk-ev π1 E) (< proj₁ ； interpTm e1 ； T.map inj₁ , proj₂ > ； couneval) > ； T.beta ； T.map eval ； T.mu  ≡⟨ cong (\f -> < interpTm (wk-tm π1 e) , f > ； T.beta ； T.map eval ； T.mu) (interpEv-wk-coh' {e = e1} E) ⟩
   < proj₁ ； interpTm e1 ； T.map inj₁ , proj₂ > ； couneval ∎
   where open ≡-Reasoning
         π1 = wk-wk wk-id
 interpEv-wk-coh' {e = e} (app-l E v {{ϕ}}) =
-  interpEv (wk-ev π1 (app-l E v)) (< proj₁ ； interpTm e ； T.map inj₁ , proj₂ > ； couneval)                                                                        ≡⟨ refl ⟩
-  interpEv (app-l (wk-ev π1 E) (wk-tm π1 v) {{wk-tm-val π1 v ϕ}}) (< proj₁ ； interpTm e ； T.map inj₁ , proj₂ > ； couneval)                                        ≡⟨ refl ⟩
-  < interpEv (wk-ev π1 E) (< proj₁ ； interpTm e ； T.map inj₁ , proj₂ > ； couneval) , interpVal (wk-tm π1 v) (wk-tm-val π1 v ϕ) > ； T.sigma ； T.map eval ； T.mu ≡⟨ cong (\f -> < interpEv (wk-ev π1 E) (< proj₁ ； interpTm e ； T.map inj₁ , proj₂ > ； couneval) , f > ； T.sigma ； T.map eval ； T.mu) (interpVal-wk-coh π1 v ϕ) ⟩
-  < interpEv (wk-ev π1 E) (< proj₁ ； interpTm e ； T.map inj₁ , proj₂ > ； couneval) , proj₁ ； interpVal v ϕ > ； T.sigma ； T.map eval ； T.mu                    ≡⟨ cong (\f -> < f , proj₁ ； interpVal v ϕ > ； T.sigma ； T.map eval ； T.mu) (interpEv-wk-coh' {e = e} E) ⟩
-  < < proj₁ ； interpTm e ； T.map inj₁ , proj₂ > ； couneval , proj₁ ； interpVal v ϕ > ； T.sigma ； T.map eval ； T.mu                                            ≡⟨ refl ⟩
+  interpEv (wk-ev π1 (app-l E v)) (< proj₁ ； interpTm e ； T.map inj₁ , proj₂ > ； couneval)                                                     ≡⟨ refl ⟩
+  interpEv (app-l (wk-ev π1 E) (wk-tm π1 v)) (< proj₁ ； interpTm e ； T.map inj₁ , proj₂ > ； couneval)                                          ≡⟨ refl ⟩
+  < interpEv (wk-ev π1 E) (< proj₁ ； interpTm e ； T.map inj₁ , proj₂ > ； couneval) , interpVal (wk-tm π1 v) > ； T.sigma ； T.map eval ； T.mu ≡⟨ cong (\f -> < interpEv (wk-ev π1 E) (< proj₁ ； interpTm e ； T.map inj₁ , proj₂ > ； couneval) , f > ； T.sigma ； T.map eval ； T.mu) (interpVal-wk-coh π1 v) ⟩
+  < interpEv (wk-ev π1 E) (< proj₁ ； interpTm e ； T.map inj₁ , proj₂ > ； couneval) , proj₁ ； interpVal v > ； T.sigma ； T.map eval ； T.mu   ≡⟨ cong (\f -> < f , proj₁ ； interpVal v > ； T.sigma ； T.map eval ； T.mu) (interpEv-wk-coh' {e = e} E) ⟩
+  < < proj₁ ； interpTm e ； T.map inj₁ , proj₂ > ； couneval , proj₁ ； interpVal v > ； T.sigma ； T.map eval ； T.mu                           ≡⟨ refl ⟩
   < proj₁ ； interpTm e ； T.map inj₁ , proj₂ > ； couneval ∎
   where open ≡-Reasoning
         π1 = wk-wk wk-id
+        instance _ = wk-tm-val π1 v {{ϕ}}
 
 interpEv-wk-coh'' : (e : Γ ⊢ A `+ B) (e1 : (Γ ∙ A) ⊢ C) (e2 : (Γ ∙ B) ⊢ C) (E : Γ ⊢ C ⇛ D)
                  -> interpEv E (< id , interpTm e > ； T.tau ； T.map distl ； T.map S.[ interpTm e1 , interpTm e2 ] ； T.mu)
                   ≡ < id , interpTm e > ； T.tau ； T.map distl ； T.map S.[ interpEv (wk-ev (wk-wk wk-id) E) (interpTm e1) , interpEv (wk-ev (wk-wk wk-id) E) (interpTm e2) ] ； T.mu
 interpEv-wk-coh'' e e1 e2 ø = refl
 interpEv-wk-coh'' e e1 e2 (app-r e3 E) =
-  interpEv (app-r e3 E) (< id , interpTm e > ； T.tau ； T.map distl ； T.map S.[ interpTm e1 , interpTm e2 ] ； T.mu)                                                                                                                                                                                           ≡⟨ refl ⟩
-  < interpTm e3 , interpEv E (< id , interpTm e > ； T.tau ； T.map distl ； T.map S.[ interpTm e1 , interpTm e2 ] ； T.mu) > ； T.beta ； T.map eval ； T.mu                                                                                                                                                    ≡⟨ cong (\f -> < interpTm e3 , f > ； T.beta ； T.map eval ； T.mu) (interpEv-wk-coh'' e e1 e2 E) ⟩
-  < interpTm e3 , < id , interpTm e > ； T.tau ； T.map distl ； T.map S.[ interpEv (wk-ev π1 E) (interpTm e1) , interpEv (wk-ev π2 E) (interpTm e2) ] ； T.mu > ； T.beta ； T.map eval ； T.mu                                                                                                                 ≡⟨ refl ⟩
-  < interpTm e3 , < id , interpTm e > ； T.tau ； T.map distl ； T.map S.[ interpEv (wk-ev π1 E) (interpTm e1) , interpEv (wk-ev π2 E) (interpTm e2) ] ； T.mu > ； T.beta ； T.map eval ； T.mu                                                                                                                 ≡⟨ (funext \γ -> funext \k -> cong (interpTm e γ) (funext \{ (inj₁ x) -> refl ; (inj₂ y) -> refl } )) ⟩
-  < id , interpTm e > ； T.tau ； T.map distl ； T.map S.[ < proj₁ ； interpTm e3 , interpEv (wk-ev π1 E) (interpTm e1) > ； T.beta ； T.map eval ； T.mu , < proj₁ ； interpTm e3 , interpEv (wk-ev π2 E) (interpTm e2) > ； T.beta ； T.map eval ； T.mu ] ； T.mu                                             ≡⟨ refl ⟩
-  < id , interpTm e > ； T.tau ； T.map distl ； T.map S.[ < interpTm (wk-tm π1 e3) , interpEv (wk-ev π1 E) (interpTm e1) > ； T.beta ； T.map eval ； T.mu , < interpTm (wk-tm π2 e3) , interpEv (wk-ev π2 E) (interpTm e2) > ； T.beta ； T.map eval ； T.mu ] ； T.mu                                         ≡⟨ refl ⟩
-  < id , interpTm e > ； T.tau ； T.map distl ； T.map S.[ interpEv (app-r (wk-tm π1 e3) (wk-ev π1 E)) (interpTm e1) , interpEv (app-r (wk-tm π2 e3) (wk-ev π2 E)) (interpTm e2) ] ； T.mu                                                                                                                       ≡⟨ refl ⟩
+  interpEv (app-r e3 E) (< id , interpTm e > ； T.tau ； T.map distl ； T.map S.[ interpTm e1 , interpTm e2 ] ； T.mu)                                                                                                                                                     ≡⟨ refl ⟩
+  < interpTm e3 , interpEv E (< id , interpTm e > ； T.tau ； T.map distl ； T.map S.[ interpTm e1 , interpTm e2 ] ； T.mu) > ； T.beta ； T.map eval ； T.mu                                                                                                              ≡⟨ cong (\f -> < interpTm e3 , f > ； T.beta ； T.map eval ； T.mu) (interpEv-wk-coh'' e e1 e2 E) ⟩
+  < interpTm e3 , < id , interpTm e > ； T.tau ； T.map distl ； T.map S.[ interpEv (wk-ev π1 E) (interpTm e1) , interpEv (wk-ev π2 E) (interpTm e2) ] ； T.mu > ； T.beta ； T.map eval ； T.mu                                                                           ≡⟨ refl ⟩
+  < interpTm e3 , < id , interpTm e > ； T.tau ； T.map distl ； T.map S.[ interpEv (wk-ev π1 E) (interpTm e1) , interpEv (wk-ev π2 E) (interpTm e2) ] ； T.mu > ； T.beta ； T.map eval ； T.mu                                                                           ≡⟨ (funext \γ -> funext \k -> cong (interpTm e γ) (funext \{ (inj₁ x) -> refl ; (inj₂ y) -> refl } )) ⟩
+  < id , interpTm e > ； T.tau ； T.map distl ； T.map S.[ < proj₁ ； interpTm e3 , interpEv (wk-ev π1 E) (interpTm e1) > ； T.beta ； T.map eval ； T.mu , < proj₁ ； interpTm e3 , interpEv (wk-ev π2 E) (interpTm e2) > ； T.beta ； T.map eval ； T.mu ] ； T.mu       ≡⟨ refl ⟩
+  < id , interpTm e > ； T.tau ； T.map distl ； T.map S.[ < interpTm (wk-tm π1 e3) , interpEv (wk-ev π1 E) (interpTm e1) > ； T.beta ； T.map eval ； T.mu , < interpTm (wk-tm π2 e3) , interpEv (wk-ev π2 E) (interpTm e2) > ； T.beta ； T.map eval ； T.mu ] ； T.mu   ≡⟨ refl ⟩
+  < id , interpTm e > ； T.tau ； T.map distl ； T.map S.[ interpEv (app-r (wk-tm π1 e3) (wk-ev π1 E)) (interpTm e1) , interpEv (app-r (wk-tm π2 e3) (wk-ev π2 E)) (interpTm e2) ] ； T.mu                                                                                 ≡⟨ refl ⟩
   < id , interpTm e > ； T.tau ； T.map distl ； T.map S.[ interpEv (wk-ev π1 (app-r e3 E)) (interpTm e1) , interpEv (wk-ev π2 (app-r e3 E)) (interpTm e2) ] ； T.mu ∎
   where open ≡-Reasoning
         π1 = wk-wk wk-id
         π2 = wk-wk wk-id
 interpEv-wk-coh'' e e1 e2 (app-l E v {{ϕ}}) =
-  interpEv (app-l E v) (< id , interpTm e > ； T.tau ； T.map distl ； T.map S.[ interpTm e1 , interpTm e2 ] ； T.mu)                                                                                                                                                                                            ≡⟨ refl ⟩
-  < interpEv E (< id , interpTm e > ； T.tau ； T.map distl ； T.map S.[ interpTm e1 , interpTm e2 ] ； T.mu) , interpVal v ϕ > ； T.sigma ； T.map eval ； T.mu                                                                                                                                                 ≡⟨ cong (\f -> < f , interpVal v ϕ > ； T.sigma ； T.map eval ； T.mu) (interpEv-wk-coh'' e e1 e2 E) ⟩
-  < < id , interpTm e > ； T.tau ； T.map distl ； T.map S.[ interpEv (wk-ev (wk-wk wk-id) E) (interpTm e1) , interpEv (wk-ev (wk-wk wk-id) E) (interpTm e2) ] ； T.mu , interpVal v ϕ > ； T.sigma ； T.map eval ； T.mu                                                                                        ≡⟨ (funext \γ -> funext \k -> cong (interpTm e γ) (funext \{ (inj₁ x) -> refl ; (inj₂ y) -> refl })) ⟩
-  < id , interpTm e > ； T.tau ； T.map distl ； T.map S.[ < interpEv (wk-ev π1 E) (interpTm e1) , interpVal (wk-tm π1 v) (wk-tm-val π1 v ϕ) > ； T.sigma ； T.map eval ； T.mu , < interpEv (wk-ev π2 E) (interpTm e2) , interpVal (wk-tm π2 v) (wk-tm-val π2 v ϕ) > ； T.sigma ； T.map eval ； T.mu ] ； T.mu ≡⟨ refl ⟩
-  < id , interpTm e > ； T.tau ； T.map distl ； T.map S.[ interpEv (app-l (wk-ev π1 E) (wk-tm π1 v) {{wk-tm-val π1 v ϕ}}) (interpTm e1) , interpEv (app-l (wk-ev π2 E) (wk-tm π2 v) {{wk-tm-val π2 v ϕ}}) (interpTm e2) ] ； T.mu                                                                               ≡⟨ refl ⟩
+  interpEv (app-l E v) (< id , interpTm e > ； T.tau ； T.map distl ； T.map S.[ interpTm e1 , interpTm e2 ] ； T.mu)                                                                                                                                                      ≡⟨ refl ⟩
+  < interpEv E (< id , interpTm e > ； T.tau ； T.map distl ； T.map S.[ interpTm e1 , interpTm e2 ] ； T.mu) , interpVal v > ； T.sigma ； T.map eval ； T.mu                                                                                                             ≡⟨ cong (\f -> < f , interpVal v > ； T.sigma ； T.map eval ； T.mu) (interpEv-wk-coh'' e e1 e2 E) ⟩
+  < < id , interpTm e > ； T.tau ； T.map distl ； T.map S.[ interpEv (wk-ev (wk-wk wk-id) E) (interpTm e1) , interpEv (wk-ev (wk-wk wk-id) E) (interpTm e2) ] ； T.mu , interpVal v > ； T.sigma ； T.map eval ； T.mu                                                    ≡⟨ (funext \γ -> funext \k -> cong (interpTm e γ) (funext \{ (inj₁ x) -> refl ; (inj₂ y) -> refl })) ⟩
+  < id , interpTm e > ； T.tau ； T.map distl ； T.map S.[ < interpEv (wk-ev π1 E) (interpTm e1) , interpVal (wk-tm π1 v) > ； T.sigma ； T.map eval ； T.mu , < interpEv (wk-ev π2 E) (interpTm e2) , interpVal (wk-tm π2 v) > ； T.sigma ； T.map eval ； T.mu ] ； T.mu ≡⟨ refl ⟩
+  < id , interpTm e > ； T.tau ； T.map distl ； T.map S.[ interpEv (app-l (wk-ev π1 E) (wk-tm π1 v)) (interpTm e1) , interpEv (app-l (wk-ev π2 E) (wk-tm π2 v)) (interpTm e2) ] ； T.mu                                                                                   ≡⟨ refl ⟩
   < id , interpTm e > ； T.tau ； T.map distl ； T.map S.[ interpEv (wk-ev π1 (app-l E v)) (interpTm e1) , interpEv (wk-ev π2 (app-l E v)) (interpTm e2) ] ； T.mu ∎
   where open ≡-Reasoning
         π1 = wk-wk wk-id
         π2 = wk-wk wk-id
+        instance _ = wk-tm-val π1 v {{ϕ}}
+        instance _ = wk-tm-val π2 v {{ϕ}}
 
 interpEq : Γ ⊢ e1 ≈ e2 ∶ A -> interpTm e1 ≡ interpTm e2
 interpEq ≈-refl = refl
@@ -398,83 +402,83 @@ interpEq (≈-trans eq1 eq2) = trans (interpEq eq1) (interpEq eq2)
 interpEq (fst-cong eq) = cong (_； T.map proj₁) (interpEq eq)
 interpEq (snd-cong eq) = cong (_； T.map proj₂) (interpEq eq)
 interpEq (pair-cong eq1 eq2) = cong₂ (\f g -> < f , g > ； T.beta) (interpEq eq1) (interpEq eq2)
-interpEq (fst-beta v1 {{ϕ1}} v2 {{ϕ2}}) =
-  interpTm (pair v1 v2) ； T.map proj₁                                                                                   ≡⟨ cong (_； T.map proj₁) (interpVal-tm-coh (pair v1 v2) (pair {{ϕ1}} {{ϕ2}})) ⟩
-  interpVal (pair v1 v2) (pair {{ϕ1}} {{ϕ2}}) ； T.eta ； T.map proj₁                                                    ≡⟨ refl ⟩
-  interpVal (pair v1 v2) (pair {{ϕ1}} {{ϕ2}}) ； proj₁ ； T.eta                                                          ≡⟨ refl ⟩
-  interpVal v1 ϕ1 ； T.eta                                                                                               ≡⟨ sym (interpVal-tm-coh v1 ϕ1) ⟩
+interpEq (fst-beta v1 v2) =
+  interpTm (pair v1 v2) ； T.map proj₁                                                                                 ≡⟨ cong (_； T.map proj₁) (interpVal-tm-coh (pair v1 v2)) ⟩
+  interpVal (pair v1 v2) ； T.eta ； T.map proj₁                                                                       ≡⟨ refl ⟩
+  interpVal (pair v1 v2) ； proj₁ ； T.eta                                                                             ≡⟨ refl ⟩
+  interpVal v1 ； T.eta                                                                                                ≡⟨ sym (interpVal-tm-coh v1) ⟩
   interpTm v1 ∎
   where open ≡-Reasoning
-interpEq (snd-beta v1 {{ϕ1}} v2 {{ϕ2}}) =
-  interpTm (pair v1 v2) ； T.map proj₂                                                                                   ≡⟨ cong (_； T.map proj₂) (interpVal-tm-coh (pair v1 v2) (pair {{ϕ1}} {{ϕ2}})) ⟩
-  interpVal (pair v1 v2) (pair {{ϕ1}} {{ϕ2}}) ； T.eta ； T.map proj₂                                                    ≡⟨ refl ⟩
-  interpVal (pair v1 v2) (pair {{ϕ1}} {{ϕ2}}) ； proj₂ ； T.eta                                                          ≡⟨ refl ⟩
-  interpVal v2 ϕ2 ； T.eta                                                                                               ≡⟨ sym (interpVal-tm-coh v2 ϕ2) ⟩
+interpEq (snd-beta v1 v2) =
+  interpTm (pair v1 v2) ； T.map proj₂                                                                                 ≡⟨ cong (_； T.map proj₂) (interpVal-tm-coh (pair v1 v2)) ⟩
+  interpVal (pair v1 v2) ； T.eta ； T.map proj₂                                                                       ≡⟨ refl ⟩
+  interpVal (pair v1 v2) ； proj₂ ； T.eta                                                                             ≡⟨ refl ⟩
+  interpVal v2 ； T.eta                                                                                                ≡⟨ sym (interpVal-tm-coh v2) ⟩
   interpTm v2 ∎
   where open ≡-Reasoning
-interpEq (pair-eta v {{ϕ}}) =
-  < interpTm v ； T.map proj₁ , interpTm v ； T.map proj₂ > ； T.beta                                                    ≡⟨ cong (\f -> < f ； T.map proj₁ , f ； T.map proj₂ > ； T.beta) (interpVal-tm-coh v ϕ) ⟩
-  < interpVal v ϕ ； T.eta ； T.map proj₁ , interpVal v ϕ ； T.eta ； T.map proj₂ > ； T.beta                            ≡⟨ refl ⟩
-  < interpVal v ϕ ； proj₁ ； T.eta , interpVal v ϕ ； proj₂ ； T.eta > ； T.beta                                        ≡⟨ refl ⟩
-  interpVal v ϕ ； T.eta                                                                                                 ≡⟨ sym (interpVal-tm-coh v ϕ) ⟩
+interpEq (pair-eta v) =
+  < interpTm v ； T.map proj₁ , interpTm v ； T.map proj₂ > ； T.beta                                                  ≡⟨ cong (\f -> < f ； T.map proj₁ , f ； T.map proj₂ > ； T.beta) (interpVal-tm-coh v) ⟩
+  < interpVal v ； T.eta ； T.map proj₁ , interpVal v ； T.eta ； T.map proj₂ > ； T.beta                              ≡⟨ refl ⟩
+  < interpVal v ； proj₁ ； T.eta , interpVal v ； proj₂ ； T.eta > ； T.beta                                          ≡⟨ refl ⟩
+  interpVal v ； T.eta                                                                                                 ≡⟨ sym (interpVal-tm-coh v) ⟩
   interpTm v ∎
   where open ≡-Reasoning
-interpEq (unit-eta v {{ϕ}}) =
-  interpTm v                                                                                                             ≡⟨ interpVal-tm-coh v ϕ ⟩
-  interpVal v ϕ ； T.eta                                                                                                 ≡⟨ cong (_； T.eta) refl ⟩
-  interpVal unit unit ； T.eta                                                                                           ≡⟨ sym (interpVal-tm-coh unit unit) ⟩
+interpEq (unit-eta v) =
+  interpTm v                                                                                                           ≡⟨ interpVal-tm-coh v ⟩
+  interpVal v ； T.eta                                                                                                 ≡⟨ cong (_； T.eta) refl ⟩
+  interpVal unit ； T.eta                                                                                              ≡⟨ sym (interpVal-tm-coh unit) ⟩
   interpTm unit ∎
   where open ≡-Reasoning
 interpEq (lam-beta e v {{ϕ}}) =
-  < curry (interpTm e) ； T.eta , interpTm v > ； T.beta ； T.map eval ； T.mu                                           ≡⟨ cong (\f -> < curry (interpTm e) ； T.eta , f > ； T.beta ； T.map eval ； T.mu) (interpVal-tm-coh v ϕ) ⟩
-  < curry (interpTm e) ； T.eta , interpVal v ϕ ； T.eta > ； T.beta ； T.map eval ； T.mu                               ≡⟨ refl ⟩
-  < curry (interpTm e), interpVal v ϕ > ； pmap T.eta T.eta ； T.beta ； T.map eval ； T.mu                              ≡⟨ refl ⟩
-  < curry (interpTm e), interpVal v ϕ > ； T.eta ； T.map eval ； T.mu                                                   ≡⟨ refl ⟩
-  < curry (interpTm e), interpVal v ϕ > ； eval ； T.eta ； T.mu                                                         ≡⟨ refl ⟩
-  < curry (interpTm e), interpVal v ϕ > ； eval                                                                          ≡⟨ refl ⟩
-  < id , interpVal v ϕ > ； interpTm e                                                                                   ≡⟨ cong (\f -> < f , interpVal v ϕ > ； interpTm e) (sym interpSub-id-coh) ⟩
-  < interpSub sub-id sub-id-sub , interpVal v ϕ > ； interpTm e                                                          ≡⟨ refl ⟩
-  interpSub (sub-ex sub-id v) (sub-ex sub-id-sub ϕ) ； interpTm e                                                        ≡⟨ sym (interpSub-tm-coh (sub-ex sub-id v) (sub-ex sub-id-sub ϕ) e) ⟩
+  < curry (interpTm e) ； T.eta , interpTm v > ； T.beta ； T.map eval ； T.mu                                         ≡⟨ cong (\f -> < curry (interpTm e) ； T.eta , f > ； T.beta ； T.map eval ； T.mu) (interpVal-tm-coh v) ⟩
+  < curry (interpTm e) ； T.eta , interpVal v ； T.eta > ； T.beta ； T.map eval ； T.mu                               ≡⟨ refl ⟩
+  < curry (interpTm e), interpVal v > ； pmap T.eta T.eta ； T.beta ； T.map eval ； T.mu                              ≡⟨ refl ⟩
+  < curry (interpTm e), interpVal v > ； T.eta ； T.map eval ； T.mu                                                   ≡⟨ refl ⟩
+  < curry (interpTm e), interpVal v > ； eval ； T.eta ； T.mu                                                         ≡⟨ refl ⟩
+  < curry (interpTm e), interpVal v > ； eval                                                                          ≡⟨ refl ⟩
+  < id , interpVal v > ； interpTm e                                                                                   ≡⟨ cong (\f -> < f , interpVal v > ； interpTm e) (sym interpSub-id-coh) ⟩
+  < interpSub sub-id sub-id-sub , interpVal v > ； interpTm e                                                          ≡⟨ refl ⟩
+  interpSub (sub-ex sub-id v) (sub-ex sub-id-sub ϕ) ； interpTm e                                                      ≡⟨ sym (interpSub-tm-coh (sub-ex sub-id v) (sub-ex sub-id-sub ϕ) e) ⟩
   interpTm (sub-tm (sub-ex sub-id v) e) ∎
   where open ≡-Reasoning
 interpEq (lam-eta v {{ϕ}}) =
-  curry (< interpTm (wk-tm (wk-wk wk-id) v) , interpTm (var h) > ； T.beta ； T.map eval ； T.mu) ； T.eta               ≡⟨ cong (\f -> curry (< f , interpTm (var h) > ； T.beta ； T.map eval ； T.mu) ； T.eta) (interpWk-tm-coh (wk-wk wk-id) v) ⟩
-  curry (< interpWk (wk-wk wk-id) ； interpTm v , interpTm (var h) > ； T.beta ； T.map eval ； T.mu) ； T.eta           ≡⟨ cong (\f -> curry (< proj₁ ； f ； interpTm v , interpTm (var h) > ； T.beta ； T.map eval ； T.mu) ； T.eta) interpWk-id-coh ⟩
-  curry (< proj₁ ； interpTm v , interpTm (var h) > ； T.beta ； T.map eval ； T.mu) ； T.eta                            ≡⟨ cong (\f -> curry (< proj₁ ； f , interpTm (var h) > ； T.beta ； T.map eval ； T.mu) ； T.eta) (interpVal-tm-coh v ϕ) ⟩
-  curry (< proj₁ ； interpVal v ϕ ； T.eta , interpTm (var h) > ； T.beta ； T.map eval ； T.mu) ； T.eta                ≡⟨ refl ⟩
-  interpVal v ϕ ； T.eta                                                                                                 ≡⟨ sym (interpVal-tm-coh v ϕ) ⟩
+  curry (< interpTm (wk-tm (wk-wk wk-id) v) , interpTm (var h) > ； T.beta ； T.map eval ； T.mu) ； T.eta             ≡⟨ cong (\f -> curry (< f , interpTm (var h) > ； T.beta ； T.map eval ； T.mu) ； T.eta) (interpWk-tm-coh (wk-wk wk-id) v) ⟩
+  curry (< interpWk (wk-wk wk-id) ； interpTm v , interpTm (var h) > ； T.beta ； T.map eval ； T.mu) ； T.eta         ≡⟨ cong (\f -> curry (< proj₁ ； f ； interpTm v , interpTm (var h) > ； T.beta ； T.map eval ； T.mu) ； T.eta) interpWk-id-coh ⟩
+  curry (< proj₁ ； interpTm v , interpTm (var h) > ； T.beta ； T.map eval ； T.mu) ； T.eta                          ≡⟨ cong (\f -> curry (< proj₁ ； f , interpTm (var h) > ； T.beta ； T.map eval ； T.mu) ； T.eta) (interpVal-tm-coh v) ⟩
+  curry (< proj₁ ； interpVal v ； T.eta , interpTm (var h) > ； T.beta ； T.map eval ； T.mu) ； T.eta                ≡⟨ refl ⟩
+  interpVal v ； T.eta                                                                                                 ≡⟨ sym (interpVal-tm-coh v) ⟩
   interpTm v ∎
   where open ≡-Reasoning
 interpEq (case-inl-beta v {{ϕ}} e2 e3) =
-  < id , interpTm v ； T.map inj₁ > ； T.tau ； T.map distl ； T.map S.[ interpTm e2 , interpTm e3 ] ； T.mu             ≡⟨ cong (\f -> < id , f ； T.map inj₁ > ； T.tau ； T.map distl ； T.map S.[ interpTm e2 , interpTm e3 ] ； T.mu) (interpVal-tm-coh v ϕ) ⟩
-  < id , interpVal v ϕ ； T.eta ； T.map inj₁ > ； T.tau ； T.map distl ； T.map S.[ interpTm e2 , interpTm e3 ] ； T.mu ≡⟨ refl ⟩
-  < id , interpVal v ϕ > ； interpTm e2                                                                                  ≡⟨ cong (\f -> < f , interpVal v ϕ > ； interpTm e2) (sym interpSub-id-coh) ⟩
-  < interpSub sub-id sub-id-sub , interpVal v ϕ > ； interpTm e2                                                         ≡⟨ refl ⟩
-  interpSub (sub-ex sub-id v) (sub-ex sub-id-sub ϕ) ； interpTm e2                                                       ≡⟨ sym (interpSub-tm-coh (sub-ex sub-id v) (sub-ex sub-id-sub ϕ) e2) ⟩
+  < id , interpTm v ； T.map inj₁ > ； T.tau ； T.map distl ； T.map S.[ interpTm e2 , interpTm e3 ] ； T.mu           ≡⟨ cong (\f -> < id , f ； T.map inj₁ > ； T.tau ； T.map distl ； T.map S.[ interpTm e2 , interpTm e3 ] ； T.mu) (interpVal-tm-coh v) ⟩
+  < id , interpVal v ； T.eta ； T.map inj₁ > ； T.tau ； T.map distl ； T.map S.[ interpTm e2 , interpTm e3 ] ； T.mu ≡⟨ refl ⟩
+  < id , interpVal v > ； interpTm e2                                                                                  ≡⟨ cong (\f -> < f , interpVal v > ； interpTm e2) (sym interpSub-id-coh) ⟩
+  < interpSub sub-id sub-id-sub , interpVal v > ； interpTm e2                                                         ≡⟨ refl ⟩
+  interpSub (sub-ex sub-id v) (sub-ex sub-id-sub ϕ) ； interpTm e2                                                     ≡⟨ sym (interpSub-tm-coh (sub-ex sub-id v) (sub-ex sub-id-sub ϕ) e2) ⟩
   interpTm (sub-tm (sub-ex sub-id v) e2) ∎
   where open ≡-Reasoning
 interpEq (case-inr-beta v {{ϕ}} e2 e3) =
-  < id , interpTm v ； T.map inj₂ > ； T.tau ； T.map distl ； T.map S.[ interpTm e2 , interpTm e3 ] ； T.mu             ≡⟨ cong (\f -> < id , f ； T.map inj₂ > ； T.tau ； T.map distl ； T.map S.[ interpTm e2 , interpTm e3 ] ； T.mu) (interpVal-tm-coh v ϕ) ⟩
-  < id , interpVal v ϕ ； T.eta ； T.map inj₂ > ； T.tau ； T.map distl ； T.map S.[ interpTm e2 , interpTm e3 ] ； T.mu ≡⟨ refl ⟩
-  < id , interpVal v ϕ > ； interpTm e3                                                                                  ≡⟨ cong (\f -> < f , interpVal v ϕ > ； interpTm e3) (sym interpSub-id-coh) ⟩
-  < interpSub sub-id sub-id-sub , interpVal v ϕ > ； interpTm e3                                                         ≡⟨ refl ⟩
-  interpSub (sub-ex sub-id v) (sub-ex sub-id-sub ϕ) ； interpTm e3                                                       ≡⟨ sym (interpSub-tm-coh (sub-ex sub-id v) (sub-ex sub-id-sub ϕ) e3) ⟩
+  < id , interpTm v ； T.map inj₂ > ； T.tau ； T.map distl ； T.map S.[ interpTm e2 , interpTm e3 ] ； T.mu           ≡⟨ cong (\f -> < id , f ； T.map inj₂ > ； T.tau ； T.map distl ； T.map S.[ interpTm e2 , interpTm e3 ] ； T.mu) (interpVal-tm-coh v) ⟩
+  < id , interpVal v ； T.eta ； T.map inj₂ > ； T.tau ； T.map distl ； T.map S.[ interpTm e2 , interpTm e3 ] ； T.mu ≡⟨ refl ⟩
+  < id , interpVal v > ； interpTm e3                                                                                  ≡⟨ cong (\f -> < f , interpVal v > ； interpTm e3) (sym interpSub-id-coh) ⟩
+  < interpSub sub-id sub-id-sub , interpVal v > ； interpTm e3                                                         ≡⟨ refl ⟩
+  interpSub (sub-ex sub-id v) (sub-ex sub-id-sub ϕ) ； interpTm e3                                                     ≡⟨ sym (interpSub-tm-coh (sub-ex sub-id v) (sub-ex sub-id-sub ϕ) e3) ⟩
   interpTm (sub-tm (sub-ex sub-id v) e3) ∎
   where open ≡-Reasoning
 interpEq (colam-beta e v {{ϕ}}) =
-  < councurry (interpTm e) , interpTm v > ； T.tau ； T.map couneval ； T.mu                                             ≡⟨ cong (\f -> < councurry (interpTm e) , f > ； T.tau ； T.map couneval ； T.mu) (interpVal-tm-coh v ϕ) ⟩
-  < councurry (interpTm e) , interpVal v ϕ ； T.eta > ； T.tau ； T.map couneval ； T.mu                                 ≡⟨ refl ⟩
-  < councurry (interpTm e) , interpVal v ϕ > ； couneval                                                                 ≡⟨ refl ⟩
-  < id , interpVal v ϕ > ； interpTm e                                                                                   ≡⟨ cong (\f -> < f , interpVal v ϕ > ； interpTm e) (sym interpSub-id-coh) ⟩
-  < interpSub sub-id sub-id-sub , interpVal v ϕ > ； interpTm e                                                          ≡⟨ refl ⟩
-  interpSub (sub-ex sub-id v) (sub-ex sub-id-sub ϕ) ； interpTm e                                                        ≡⟨ sym (interpSub-tm-coh (sub-ex sub-id v) (sub-ex sub-id-sub ϕ) e) ⟩
+  < councurry (interpTm e) , interpTm v > ； T.tau ； T.map couneval ； T.mu                                           ≡⟨ cong (\f -> < councurry (interpTm e) , f > ； T.tau ； T.map couneval ； T.mu) (interpVal-tm-coh v) ⟩
+  < councurry (interpTm e) , interpVal v ； T.eta > ； T.tau ； T.map couneval ； T.mu                                 ≡⟨ refl ⟩
+  < councurry (interpTm e) , interpVal v > ； couneval                                                                 ≡⟨ refl ⟩
+  < id , interpVal v > ； interpTm e                                                                                   ≡⟨ cong (\f -> < f , interpVal v > ； interpTm e) (sym interpSub-id-coh) ⟩
+  < interpSub sub-id sub-id-sub , interpVal v > ； interpTm e                                                          ≡⟨ refl ⟩
+  interpSub (sub-ex sub-id v) (sub-ex sub-id-sub ϕ) ； interpTm e                                                      ≡⟨ sym (interpSub-tm-coh (sub-ex sub-id v) (sub-ex sub-id-sub ϕ) e) ⟩
   interpTm (sub-tm (sub-ex sub-id v) e) ∎
   where open ≡-Reasoning
 interpEq (colam-eta {A = A} e) =
-  councurry (< interpTm (wk-tm π1 e) , interpTm {A = A *} (var h) > ； T.tau ； T.map couneval ； T.mu)                  ≡⟨ cong (\f -> councurry (< f , interpTm {A = A *} (var h) > ； T.tau ； T.map couneval ； T.mu)) (interpWk-tm-coh π1 e) ⟩
-  councurry (< interpWk π1 ； interpTm e , interpTm {A = A *} (var h) > ； T.tau ； T.map couneval ； T.mu)              ≡⟨ cong (\f -> councurry (< f ； interpTm e , interpTm {A = A *} (var h) > ； T.tau ； T.map couneval ； T.mu)) (cong (proj₁ ；_) interpWk-id-coh) ⟩
-  councurry (< proj₁ ； interpTm e , interpTm {A = A *} (var h) > ； T.tau ； T.map (cocurry id) ； T.mu)                ≡⟨ refl ⟩
-  councurry (cocurry (interpTm e))                                                                                       ≡⟨ councurry-cocurry (interpTm e) ⟩
+  councurry (< interpTm (wk-tm π1 e) , interpTm {A = A *} (var h) > ； T.tau ； T.map couneval ； T.mu)                ≡⟨ cong (\f -> councurry (< f , interpTm {A = A *} (var h) > ； T.tau ； T.map couneval ； T.mu)) (interpWk-tm-coh π1 e) ⟩
+  councurry (< interpWk π1 ； interpTm e , interpTm {A = A *} (var h) > ； T.tau ； T.map couneval ； T.mu)            ≡⟨ cong (\f -> councurry (< f ； interpTm e , interpTm {A = A *} (var h) > ； T.tau ； T.map couneval ； T.mu)) (cong (proj₁ ；_) interpWk-id-coh) ⟩
+  councurry (< proj₁ ； interpTm e , interpTm {A = A *} (var h) > ； T.tau ； T.map (cocurry id) ； T.mu)              ≡⟨ refl ⟩
+  councurry (cocurry (interpTm e))                                                                                     ≡⟨ councurry-cocurry (interpTm e) ⟩
   interpTm e ∎
   where open ≡-Reasoning
         π1 = wk-wk {A = A *} wk-id
@@ -512,8 +516,8 @@ interpEq (colam-inl-jump e E) =
 
 interpEq (case-colam-beta v {{ϕ}} e1 e2) =
   interpTm (case (colam v) e1 e2)                                                                                                   ≡⟨ refl ⟩
-  < id , councurry (interpTm v) > ； T.tau ； T.map distl ； T.map S.[ interpTm e1 , interpTm e2 ] ； T.mu                          ≡⟨ cong (\f -> < id , councurry f > ； T.tau ； T.map distl ； T.map S.[ interpTm e1 , interpTm e2 ] ； T.mu) (interpVal-tm-coh v ϕ) ⟩
-  < id , councurry (interpVal v ϕ ； T.eta) > ； T.tau ； T.map distl ； T.map S.[ interpTm e1 , interpTm e2 ] ； T.mu              ≡⟨ refl ⟩
+  < id , councurry (interpTm v) > ； T.tau ； T.map distl ； T.map S.[ interpTm e1 , interpTm e2 ] ； T.mu                          ≡⟨ cong (\f -> < id , councurry f > ； T.tau ； T.map distl ； T.map S.[ interpTm e1 , interpTm e2 ] ； T.mu) (interpVal-tm-coh v) ⟩
+  < id , councurry (interpVal v ； T.eta) > ； T.tau ； T.map distl ； T.map S.[ interpTm e1 , interpTm e2 ] ； T.mu                ≡⟨ refl ⟩
   < id , councurry (interpSub θ1 ϕ1 ； interpTm e2) > ； T.tau ； T.map distl ； T.map S.[ interpTm e1 , interpTm (var h) ] ； T.mu ≡⟨ cong (\f -> < id , councurry f > ； T.tau ； T.map distl ； T.map S.[ interpTm e1 , interpTm (var h) ] ； T.mu) (sym (interpSub-tm-coh θ1 ϕ1 e2)) ⟩
   < id , councurry (interpTm (sub-tm θ1 e2)) > ； T.tau ； T.map distl ； T.map S.[ interpTm e1 , interpTm (var h) ] ； T.mu        ≡⟨ refl ⟩
   interpTm (case (colam (sub-tm θ1 e2)) e1 (var h)) ∎
