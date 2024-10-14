@@ -25,6 +25,12 @@ idf = id
 eval : {X Y : Set} -> (X -> Y) × X -> Y
 eval (f , x) = f x
 
+contramap : {X Y Z : Set} -> (X -> Y) -> (Z -> X) -> (Z -> Y)
+contramap = _∘′_
+
+compose : {X Y Z : Set} -> (Y -> Z) × (X -> Y) -> X -> Z
+compose = uncurry contramap
+
 distl : {X Y Z : Set} -> X × (Y ⊎ Z) -> X × Y ⊎ X × Z
 distl = uncurry \x -> S.[ (x ,_) ； inj₁ , (x ,_) ； inj₂ ]′
 
@@ -33,6 +39,12 @@ distr = S.[ pmap id inj₁ , pmap id inj₂ ]′
 
 ⊎-eta : {X Y Z : Set} -> S.[ inj₁ {B = Y} , inj₂ {A = X} ]′ ≡ id {A = X ⊎ Y}
 ⊎-eta = funext \{ (inj₁ x) -> refl ; (inj₂ y) -> refl }
+
+absurd : {X : Set} -> ⊥ -> X
+absurd = ⊥-elim
+
+absurd-eta : {X : Set} -> (f g : ⊥ -> X) -> f ≡ g
+absurd-eta f g = funext λ ()
 
 is-zero : ℕ -> ⊤ ⊎ ⊤
 is-zero zero = inj₁ tt
@@ -65,6 +77,9 @@ record MonadStructure (T : Set -> Set) : Set₁ where
   -- kleisli extension
   extend : (X -> T Y) -> T X -> T Y
   extend f = map f ； mu
+
+  composek : (Y -> T Z) -> (X -> T Y) -> X -> T Z
+  composek g f = f ； extend g
 
   -- strength combinators
   tau : X × T Y -> T (X × Y)
@@ -128,3 +143,9 @@ module Cont (R : Set) where
 
   𝒜 : X × (X -> R) -> T Y
   𝒜 = cocurry (inj₁ ； T.eta)
+
+  idk : {X : Set} -> X -> T X
+  idk = T.eta
+
+  coelem : {X : Set} -> (X -> R) -> X -> T ⊥
+  coelem = const ； flip

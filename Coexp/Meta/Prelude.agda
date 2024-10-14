@@ -94,7 +94,7 @@ module Ctx (Ty : Set) where
     wk : Arr Γ A B -> Arr (Γ ∙ C) A B
     wk = wk-arr (wk-wk wk-id)
 
-    module Sub (`1 : Ty) (var : ∀ {A Γ} -> A ∈ Γ -> Arr Γ `1 A) where
+    module SubVar (`1 : Ty) (var : ∀ {A Γ} -> A ∈ Γ -> Arr Γ `1 A) where
 
       data Sub (Γ : Ctx) : (Δ : Ctx) -> Set where
         sub-ε : Sub Γ ε
@@ -115,4 +115,27 @@ module Ctx (Ty : Set) where
       module SubArr (sub-arr : ∀ {A B Γ Δ} -> Sub Γ Δ -> Arr Δ A B -> Arr Γ A B) where
 
         sub : Arr Γ `1 A -> Arr (Γ ∙ A) B C -> Arr Γ B C
+        sub x f = sub-arr (sub-ex sub-id x) f
+
+    module SubCoVar (`0 : Ty) (covar : ∀ {A Γ} -> A ∈ Γ -> Arr Γ A `0) where
+
+      data Sub (Γ : Ctx) : (Δ : Ctx) -> Set where
+        sub-ε : Sub Γ ε
+        sub-ex : (θ : Sub Γ Δ) -> (e : Arr Γ A `0) -> Sub Γ (Δ ∙ A)
+
+      sub-mem : Sub Γ Δ -> A ∈ Δ -> Arr Γ A `0
+      sub-mem (sub-ex θ e) h = e
+      sub-mem (sub-ex θ e) (t i) = sub-mem θ i
+
+      sub-wk : Wk Γ Δ -> Sub Δ Ψ -> Sub Γ Ψ
+      sub-wk π sub-ε = sub-ε
+      sub-wk π (sub-ex θ e) = sub-ex (sub-wk π θ) (wk-arr π e)
+
+      sub-id : Sub Γ Γ
+      sub-id {Γ = ε} = sub-ε
+      sub-id {Γ = Γ ∙ A} = sub-ex (sub-wk (wk-wk wk-id) sub-id) (covar h)
+
+      module SubArr (sub-arr : ∀ {A B Γ Δ} -> Sub Γ Δ -> Arr Δ A B -> Arr Γ A B) where
+
+        sub : Arr Γ A `0 -> Arr (Γ ∙ A) B C -> Arr Γ B C
         sub x f = sub-arr (sub-ex sub-id x) f

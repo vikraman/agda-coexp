@@ -1,6 +1,5 @@
 module Coexp.Prelude where
 
-open import Data.Product as P renaming (map to pmap)
 open import Function
 open import Relation.Binary.PropositionalEquality
 
@@ -31,9 +30,6 @@ module _ where
       I-rec-i1 : ∀ {p0} {p1} {p} -> I-rec p0 p1 p i1 ≡ p1
       {-# REWRITE I-rec-i1 #-}
       I-rec-seg : ∀ {p0} {p1} {p} -> cong (I-rec p0 p1 p) seg ≡ p
-
--- I-rec-const : ∀ {p} {P : Set p} (p : P) -> ∀ i -> I-rec p p refl i ≡ p
--- I-rec-const p = I-elim refl refl {!!}
 
 funext : ∀ {a b} {A : Set a} {B : Set b} {f g : A -> B} -> ((x : A) -> f x ≡ g x) -> f ≡ g
 funext {f = f} {g = g} H = cong (flip \a -> I-rec (f a) (g a) (H a)) seg

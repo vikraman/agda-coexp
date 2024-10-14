@@ -11,7 +11,7 @@ data Ty : Set where
   `1 : Ty
   _`×_ : Ty -> Ty -> Ty
 
-open Ctx Ty
+open Ctx Ty public
 
 syntax Arr Γ A B = Γ ⊢ A ->> B
 
@@ -49,8 +49,8 @@ wk-arr π (e1 ∘ e2) = wk-arr π e1 ∘ wk-arr π e2
 wk-arr π (lift e) = lift (wk-arr π e)
 wk-arr π (κ e) = κ (wk-arr (wk-cong π) e)
 
-open WkArr Arr wk-arr
-open Sub `1 var
+open WkArr Arr wk-arr public
+open SubVar `1 var public
 
 sub-arr : Sub Γ Δ -> Δ ⊢ A ->> B -> Γ ⊢ A ->> B
 sub-arr θ (var i) = sub-mem θ i
@@ -61,6 +61,9 @@ sub-arr θ (lift e) = lift (sub-arr θ e)
 sub-arr θ (κ e) = κ (sub-arr (sub-ex (sub-wk (wk-wk wk-id) θ) (var h)) e)
 
 open SubArr sub-arr
+
+variable
+  e e1 e2 e3 e4 : Γ ⊢ A ->> B
 
 syntax Eq Γ A B e1 e2 = Γ ⊢ e1 ≈ e2 ∶ A ->> B
 
