@@ -18,26 +18,26 @@ syntax Arr Γ A B = Γ ⊢ A ->> B
 data Arr : Ctx -> Ty -> Ty -> Set where
 
   covar : (i : A ∈ Γ)
-        ---------
+        ----------------
         -> Γ ⊢ A ->> `0
 
   id :
-     ---------
+     ------------
      Γ ⊢ A ->> A
 
   bang :
-       ----------
+       ------------
        Γ ⊢ `0 ->> A
 
   _∘_ : Γ ⊢ B ->> C -> Γ ⊢ A ->> B
       ------------------------------
       -> Γ ⊢ A ->> C
 
-  pass* : Γ ⊢ C ->> `0
+  pass̃ : Γ ⊢ C ->> `0
        ----------------------
        -> Γ ⊢ (C `+ B) ->> B
 
-  ζ* : (Γ ∙ C) ⊢ A ->> B
+  ζ̃ : (Γ ∙ C) ⊢ A ->> B
     -----------------------
     -> Γ ⊢ A ->> (C `+ B)
 
@@ -46,8 +46,8 @@ wk-arr π (covar i) = covar (wk-mem π i)
 wk-arr π id = id
 wk-arr π bang = bang
 wk-arr π (e1 ∘ e2) = wk-arr π e1 ∘ wk-arr π e2
-wk-arr π (pass* e) = pass* (wk-arr π e)
-wk-arr π (ζ* e) = ζ* (wk-arr (wk-cong π) e)
+wk-arr π (pass̃ e) = pass̃ (wk-arr π e)
+wk-arr π (ζ̃ e) = ζ̃ (wk-arr (wk-cong π) e)
 
 open WkArr Arr wk-arr public
 open SubCoVar `0 covar public
@@ -57,8 +57,8 @@ sub-arr θ (covar i) = sub-mem θ i
 sub-arr θ id = id
 sub-arr θ bang = bang
 sub-arr θ (e1 ∘ e2) = sub-arr θ e1 ∘ sub-arr θ e2
-sub-arr θ (pass* e) = pass* (sub-arr θ e)
-sub-arr θ (ζ* e) = ζ* (sub-arr (sub-ex (sub-wk (wk-wk wk-id) θ) (covar h)) e)
+sub-arr θ (pass̃ e) = pass̃ (sub-arr θ e)
+sub-arr θ (ζ̃ e) = ζ̃ (sub-arr (sub-ex (sub-wk (wk-wk wk-id) θ) (covar h)) e)
 
 open SubArr sub-arr
 
@@ -70,11 +70,11 @@ syntax Eq Γ A B e1 e2 = Γ ⊢ e1 ≈ e2 ∶ A ->> B
 data Eq (Γ : Ctx) : (A B : Ty) -> Γ ⊢ A ->> B -> Γ ⊢ A ->> B -> Set where
 
   unitl : (f : Γ ⊢ A ->> B)
-        --------------
+        ----------------------------
         -> Γ ⊢ f ≈ id ∘ f ∶ A ->> B
 
   unitr : (f : Γ ⊢ A ->> B)
-        --------------
+        ----------------------------
         -> Γ ⊢ f ∘ id ≈ f ∶ A ->> B
 
   assoc : (f : Γ ⊢ A ->> B) (g : Γ ⊢ B ->> C) (h : Γ ⊢ C ->> D)
@@ -85,10 +85,10 @@ data Eq (Γ : Ctx) : (A B : Ty) -> Γ ⊢ A ->> B -> Γ ⊢ A ->> B -> Set where
        -------------------------
        -> Γ ⊢ f ≈ g ∶ `0 ->> A
 
-  ζ*-beta : (f : (Γ ∙ C) ⊢ A ->> B) (c : Γ ⊢ C ->> `0)
-            ------------------------------------------------
-            -> Γ ⊢ pass* {B = B} c ∘ ζ* {C = C} f ≈ sub c f ∶ A ->> B
+  ζ̃-beta : (f : (Γ ∙ C) ⊢ A ->> B) (c : Γ ⊢ C ->> `0)
+            --------------------------------------------
+            -> Γ ⊢ pass̃ c ∘ ζ̃ f ≈ sub c f ∶ A ->> B
 
-  ζ*-eta : (f : Γ ⊢ A ->> (C `+ B))
-         ------------------------------------
-         -> Γ ⊢ ζ* {C = C} (pass* {B = B} (covar h) ∘ wk f) ≈ f ∶ A ->> (C `+ B)
+  ζ̃-eta : (f : Γ ⊢ A ->> (C `+ B))
+         -------------------------------------------------------
+         -> Γ ⊢ ζ̃ (pass̃ (covar h) ∘ wk f) ≈ f ∶ A ->> (C `+ B)

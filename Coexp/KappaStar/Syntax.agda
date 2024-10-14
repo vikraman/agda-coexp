@@ -18,36 +18,36 @@ syntax Arr Γ A B = Γ ⊢ A ->> B
 data Arr : Ctx -> Ty -> Ty -> Set where
 
   covar : (i : A ∈ Γ)
-      ---------
-      -> Γ ⊢ A ->> `0
+        ----------------
+        -> Γ ⊢ A ->> `0
 
   id :
-     ---------
+     ------------
      Γ ⊢ A ->> A
 
   bang :
-       ----------
+       ------------
        Γ ⊢ `0 ->> A
 
   _∘_ : Γ ⊢ B ->> C -> Γ ⊢ A ->> B
-      ------------------------------
+      --------------------------------
       -> Γ ⊢ A ->> C
 
-  lift* : Γ ⊢ C ->> `0
-        ---------------------
+  lift̃ : Γ ⊢ C ->> `0
+        ------------------------
         -> Γ ⊢ A ->> (A `- C)
 
-  κ* : (Γ ∙ C) ⊢ A ->> B
-    -----------------------
-    -> Γ ⊢ (A `- C) ->> B
+  κ̃ : (Γ ∙ C) ⊢ A ->> B
+     -----------------------
+     -> Γ ⊢ (A `- C) ->> B
 
 wk-arr : Wk Γ Δ -> Δ ⊢ A ->> B -> Γ ⊢ A ->> B
 wk-arr π (covar i) = covar (wk-mem π i)
 wk-arr π id = id
 wk-arr π bang = bang
 wk-arr π (e1 ∘ e2) = wk-arr π e1 ∘ wk-arr π e2
-wk-arr π (lift* e) = lift* (wk-arr π e)
-wk-arr π (κ* e) = κ* (wk-arr (wk-cong π) e)
+wk-arr π (lift̃ e) = lift̃ (wk-arr π e)
+wk-arr π (κ̃ e) = κ̃ (wk-arr (wk-cong π) e)
 
 open WkArr Arr wk-arr public
 open SubCoVar `0 covar public
@@ -57,8 +57,8 @@ sub-arr θ (covar i) = sub-mem θ i
 sub-arr θ id = id
 sub-arr θ bang = bang
 sub-arr θ (e1 ∘ e2) = sub-arr θ e1 ∘ sub-arr θ e2
-sub-arr θ (lift* e) = lift* (sub-arr θ e)
-sub-arr θ (κ* e) = κ* (sub-arr (sub-ex (sub-wk (wk-wk wk-id) θ) (covar h)) e)
+sub-arr θ (lift̃ e) = lift̃ (sub-arr θ e)
+sub-arr θ (κ̃ e) = κ̃ (sub-arr (sub-ex (sub-wk (wk-wk wk-id) θ) (covar h)) e)
 
 open SubArr sub-arr
 
@@ -70,11 +70,11 @@ syntax Eq Γ A B e1 e2 = Γ ⊢ e1 ≈ e2 ∶ A ->> B
 data Eq (Γ : Ctx) : (A B : Ty) -> Γ ⊢ A ->> B -> Γ ⊢ A ->> B -> Set where
 
   unitl : (f : Γ ⊢ A ->> B)
-        --------------
+        ----------------------------
         -> Γ ⊢ f ≈ id ∘ f ∶ A ->> B
 
   unitr : (f : Γ ⊢ A ->> B)
-        --------------
+        ----------------------------
         -> Γ ⊢ f ∘ id ≈ f ∶ A ->> B
 
   assoc : (f : Γ ⊢ A ->> B) (g : Γ ⊢ B ->> C) (h : Γ ⊢ C ->> D)
@@ -85,10 +85,10 @@ data Eq (Γ : Ctx) : (A B : Ty) -> Γ ⊢ A ->> B -> Γ ⊢ A ->> B -> Set where
        -------------------------
        -> Γ ⊢ f ≈ g ∶ `0 ->> A
 
-  κ*-beta : (f : (Γ ∙ C) ⊢ A ->> B) (c : Γ ⊢ C ->> `0)
-            ------------------------------------------------
-            -> Γ ⊢ κ* {C = C} f ∘ lift* {A = A} c ≈ sub c f ∶ A ->> B
+  κ̃-beta : (f : (Γ ∙ C) ⊢ A ->> B) (c : Γ ⊢ C ->> `0)
+          --------------------------------------------
+          -> Γ ⊢ κ̃ f ∘ lift̃ c ≈ sub c f ∶ A ->> B
 
-  κ*-eta : (f : Γ ⊢ (A `- C) ->> B)
-         ---------------------------------------------------
-         -> Γ ⊢ κ* {C = C} (wk f ∘ lift* {A = A} (covar h)) ≈ f ∶ (A `- C) ->> B
+  κ̃-eta : (f : Γ ⊢ (A `- C) ->> B)
+         --------------------------------------------------------
+         -> Γ ⊢ κ̃ (wk f ∘ lift̃ (covar h)) ≈ f ∶ (A `- C) ->> B

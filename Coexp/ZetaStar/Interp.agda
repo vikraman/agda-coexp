@@ -32,8 +32,8 @@ interpArr (covar i) = interpIn i
 interpArr id = const idk
 interpArr bang = const absurd
 interpArr (e1 ∘ e2) = < interpArr e1 , interpArr e2 > ； uncurry T.composek
-interpArr (pass* e) = curry (distl ； S.[ uncurry (interpArr e) ； T.map absurd , proj₂ ； T.eta ])
-interpArr (ζ* e) = curry (interpArr e) ； flip ； uncurry ； councurry
+interpArr (pass̃ e) = curry (distl ； S.[ uncurry (interpArr e) ； T.map absurd , proj₂ ； T.eta ])
+interpArr (ζ̃ e) = curry (interpArr e) ； flip ； uncurry ； councurry
 
 interpWk : Wk Γ Δ -> interpCtx Γ -> interpCtx Δ
 interpWk wk-ε        = const tt
@@ -65,9 +65,9 @@ interpArr-wk-coh π (covar i) = interpWk-mem-coh π i
 interpArr-wk-coh π id = refl
 interpArr-wk-coh π bang = refl
 interpArr-wk-coh π (e1 ∘ e2) rewrite interpArr-wk-coh π e1 | interpArr-wk-coh π e2 = refl
-interpArr-wk-coh π (pass* e) rewrite interpArr-wk-coh π e =
+interpArr-wk-coh π (pass̃ e) rewrite interpArr-wk-coh π e =
   funext \γ -> funext \{ (inj₁ c) -> refl ; (inj₂ b) -> refl }
-interpArr-wk-coh π (ζ* e) rewrite interpArr-wk-coh (wk-cong π) e = refl
+interpArr-wk-coh π (ζ̃ e) rewrite interpArr-wk-coh (wk-cong π) e = refl
 {-# REWRITE interpArr-wk-coh #-}
 
 interpSub-wk-coh : (π : Wk Γ Δ) (θ : Sub Δ Ψ) -> interpSub (sub-wk π θ) ≡ interpWk π ； interpSub θ
@@ -85,18 +85,18 @@ interpSub-arr-coh θ (covar i) = interpSub-mem-arr-coh θ i
 interpSub-arr-coh θ id = refl
 interpSub-arr-coh θ bang = refl
 interpSub-arr-coh θ (e1 ∘ e2) rewrite interpSub-arr-coh θ e1 | interpSub-arr-coh θ e2 = refl
-interpSub-arr-coh θ (pass* e) rewrite interpSub-arr-coh θ e =
+interpSub-arr-coh θ (pass̃ e) rewrite interpSub-arr-coh θ e =
   funext \γ -> funext \{ (inj₁ c) -> refl ; (inj₂ b) -> refl }
-interpSub-arr-coh θ (ζ* e) rewrite interpSub-arr-coh (sub-ex (sub-wk (wk-wk wk-id) θ) (covar h)) e = refl
+interpSub-arr-coh θ (ζ̃ e) rewrite interpSub-arr-coh (sub-ex (sub-wk (wk-wk wk-id) θ) (covar h)) e = refl
 
 interpEq : Γ ⊢ e1 ≈ e2 ∶ A ->> B -> interpArr e1 ≡ interpArr e2
 interpEq (unitl _) = refl
 interpEq (unitr _) = refl
 interpEq (assoc _ _ _) = refl
 interpEq (term f g) = funext \γ -> absurd-eta (interpArr f γ) (interpArr g γ)
-interpEq (ζ*-beta f c) rewrite interpSub-arr-coh (sub-ex sub-id c) f =
+interpEq (ζ̃-beta f c) rewrite interpSub-arr-coh (sub-ex sub-id c) f =
   funext \γ -> funext \a -> funext \k -> cong (\h -> interpArr f (γ , h) a k) $
     funext \z -> cong (interpArr c γ z) (absurd-eta (⊥-elim ； k) ⊥-elim)
-interpEq (ζ*-eta f) =
+interpEq (ζ̃-eta f) =
   funext \γ -> funext \a -> funext \k -> cong (interpArr f γ a) $
     funext \{ (inj₁ c) -> refl ; (inj₂ b) -> refl }

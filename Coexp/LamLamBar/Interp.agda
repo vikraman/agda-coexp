@@ -20,7 +20,7 @@ open Cont R
 interpTy : Ty -> Set
 interpTy `Nat     = ℕ
 interpTy `Unit    = ⊤
-interpTy (A *)    = interpTy A -> R
+interpTy (A ̃)    = interpTy A -> R
 interpTy (A `× B) = interpTy A × interpTy B
 interpTy (A `⇒ B) = interpTy A -> T (interpTy B)
 interpTy (A `+ B) = interpTy A ⊎ interpTy B
@@ -345,7 +345,7 @@ interpEv-wk-coh π (app-r e E) f rewrite interpEv-wk-coh π E f = refl
 interpEv-wk-coh π (app-l E v {{ϕ}}) f rewrite interpEv-wk-coh π E f | interpVal-wk-coh π v {{ϕ}} = refl
 
 interpEv-wk-coh' : {e : Γ ⊢ A} (E : Γ ⊢ B ⇛ C)
-                -> interpEv (wk-ev (wk-wk {A = A *} (wk-id {Γ = Γ})) E) (< proj₁ ； interpTm e ； T.map inj₁ , proj₂ > ； couneval)
+                -> interpEv (wk-ev (wk-wk {A = A ̃} (wk-id {Γ = Γ})) E) (< proj₁ ； interpTm e ； T.map inj₁ , proj₂ > ； couneval)
                  ≡ < proj₁ ； interpTm e ； T.map inj₁ , proj₂ > ； couneval
 interpEv-wk-coh' ø = refl
 interpEv-wk-coh' {e = e1} (app-r e E) =
@@ -475,13 +475,13 @@ interpEq (colam-beta e v {{ϕ}}) =
   interpTm (sub-tm (sub-ex sub-id v) e) ∎
   where open ≡-Reasoning
 interpEq (colam-eta {A = A} e) =
-  councurry (< interpTm (wk-tm π1 e) , interpTm {A = A *} (var h) > ； T.tau ； T.map couneval ； T.mu)                ≡⟨ cong (\f -> councurry (< f , interpTm {A = A *} (var h) > ； T.tau ； T.map couneval ； T.mu)) (interpWk-tm-coh π1 e) ⟩
-  councurry (< interpWk π1 ； interpTm e , interpTm {A = A *} (var h) > ； T.tau ； T.map couneval ； T.mu)            ≡⟨ cong (\f -> councurry (< f ； interpTm e , interpTm {A = A *} (var h) > ； T.tau ； T.map couneval ； T.mu)) (cong (proj₁ ；_) interpWk-id-coh) ⟩
-  councurry (< proj₁ ； interpTm e , interpTm {A = A *} (var h) > ； T.tau ； T.map (cocurry id) ； T.mu)              ≡⟨ refl ⟩
+  councurry (< interpTm (wk-tm π1 e) , interpTm {A = A ̃} (var h) > ； T.tau ； T.map couneval ； T.mu)                ≡⟨ cong (\f -> councurry (< f , interpTm {A = A ̃} (var h) > ； T.tau ； T.map couneval ； T.mu)) (interpWk-tm-coh π1 e) ⟩
+  councurry (< interpWk π1 ； interpTm e , interpTm {A = A ̃} (var h) > ； T.tau ； T.map couneval ； T.mu)            ≡⟨ cong (\f -> councurry (< f ； interpTm e , interpTm {A = A ̃} (var h) > ； T.tau ； T.map couneval ； T.mu)) (cong (proj₁ ；_) interpWk-id-coh) ⟩
+  councurry (< proj₁ ； interpTm e , interpTm {A = A ̃} (var h) > ； T.tau ； T.map (cocurry id) ； T.mu)              ≡⟨ refl ⟩
   councurry (cocurry (interpTm e))                                                                                     ≡⟨ councurry-cocurry (interpTm e) ⟩
   interpTm e ∎
   where open ≡-Reasoning
-        π1 = wk-wk {A = A *} wk-id
+        π1 = wk-wk {A = A ̃} wk-id
 
 interpEq (colam-const {A = A} e) =
   councurry (interpTm (wk-tm π1 e))     ≡⟨ cong councurry (interpWk-tm-coh π1 e) ⟩
@@ -489,7 +489,7 @@ interpEq (colam-const {A = A} e) =
   councurry (proj₁ ； interpTm e)       ≡⟨ refl ⟩
   interpTm e ； T.map inj₂ ∎
   where open ≡-Reasoning
-        π1 = wk-wk {A = A *} wk-id
+        π1 = wk-wk {A = A ̃} wk-id
 
 interpEq (colam-inr-pass e E) =
   interpTm (colam (wk-ev π1 E [[ coapp (inr (wk e)) (var h) ]]))                                      ≡⟨ refl ⟩

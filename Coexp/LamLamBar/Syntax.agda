@@ -4,15 +4,15 @@ open import Coexp.Prelude
 open import Coexp.Meta.Prelude
 open import Data.Nat
 
-infix 50 _*
+infix 50 _̃
 infixr 40 _`×_
 infixr 35 _`+_
 infixr 25 _`⇒_
 
 data Ty : Set where
-    `Unit `Nat : Ty
-    _* : Ty -> Ty
-    _`×_ _`⇒_ _`+_ : Ty -> Ty -> Ty
+  `Unit `Nat : Ty
+  _̃ : Ty -> Ty
+  _`×_ _`⇒_ _`+_ : Ty -> Ty -> Ty
 
 `Bool : Ty
 `Bool = `Unit `+ `Unit
@@ -71,11 +71,11 @@ data Tm : Ctx -> Ty -> Set where
        ---------------------------------------------
        -> Γ ⊢ C
 
-  colam : (Γ ∙ A *) ⊢ B
+  colam : (Γ ∙ A ̃) ⊢ B
         -----------------
         -> Γ ⊢ A `+ B
 
-  coapp : Γ ⊢ A `+ B -> Γ ⊢ A *
+  coapp : Γ ⊢ A `+ B -> Γ ⊢ A ̃
         --------------------------
              -> Γ ⊢ B
 
@@ -85,7 +85,7 @@ lett : Γ ⊢ A -> (Γ ∙ A) ⊢ B
          -> Γ ⊢ B
 lett e1 e2 = app (lam e2) e1
 
-absurd : Γ ⊢ `Unit *
+absurd : Γ ⊢ `Unit ̃
        ----------------
        -> Γ ⊢ A
 absurd = coapp (inl unit)
@@ -277,7 +277,7 @@ data Eq (Γ : Ctx) : (A : Ty) -> Γ ⊢ A -> Γ ⊢ A -> Set where
   -- sum eta
 
   -- coexponential beta: (~λx.e)v ≈ [v/x]e
-  colam-beta : (e : (Γ ∙ A *) ⊢ B) -> (v : Γ ⊢ A *) {{ϕ : isVal v}}
+  colam-beta : (e : (Γ ∙ A ̃) ⊢ B) -> (v : Γ ⊢ A ̃) {{ϕ : isVal v}}
              ----------------------------------------------------------
              -> Γ ⊢ coapp (colam e) v ≈ sub-tm (sub-ex sub-id v) e ∶ B
 
@@ -299,7 +299,7 @@ data Eq (Γ : Ctx) : (A : Ty) -> Γ ⊢ A -> Γ ⊢ A -> Set where
                  ----------------------------------------------------------------------------------------------------
                  -> Γ ⊢ colam (wk-ev (wk-wk wk-id) E [[ coapp (inl (wk e)) (var h) ]]) ≈ inl e ∶ A `+ C
 
-  case-colam-beta : (v : (Γ ∙ A *) ⊢ B) {{ϕ : isVal v}} -> (e1 : (Γ ∙ A) ⊢ C) (e2 : (Γ ∙ B) ⊢ C)
+  case-colam-beta : (v : (Γ ∙ A ̃) ⊢ B) {{ϕ : isVal v}} -> (e1 : (Γ ∙ A) ⊢ C) (e2 : (Γ ∙ B) ⊢ C)
                   ---------------------------------------------------------------------------------------------------------------
                   -> Γ ⊢ case (colam v) e1 e2 ≈ case (colam (sub-tm (sub-ex (sub-wk (wk-wk wk-id) sub-id) v) e2)) e1 (var h) ∶ C
 
