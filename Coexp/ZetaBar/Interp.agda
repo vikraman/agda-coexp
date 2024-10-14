@@ -1,4 +1,4 @@
-module Coexp.ZetaStar.Interp (R : Set) where
+module Coexp.ZetaBar.Interp (R : Set) where
 
 open import Data.Nat
 open import Data.Unit
@@ -11,7 +11,7 @@ open import Relation.Binary.PropositionalEquality
 
 open import Coexp.Prelude
 open import Coexp.Semantics
-open import Coexp.ZetaStar.Syntax
+open import Coexp.ZetaBar.Syntax
 
 open Cont R
 

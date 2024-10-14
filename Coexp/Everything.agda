@@ -6,5 +6,5 @@ import Coexp.LamLamBar.Interp
 import Coexp.Kappa.Syntax
 import Coexp.Zeta.Syntax
 
-import Coexp.KappaStar.Syntax
-import Coexp.ZetaStar.Syntax
+import Coexp.KappaBar.Syntax
+import Coexp.ZetaBar.Syntax

@@ -1,4 +1,4 @@
-module Coexp.KappaStar.Interp (R : Set) where
+module Coexp.KappaBar.Interp (R : Set) where
 
 open import Data.Nat
 open import Data.Unit
@@ -11,7 +11,7 @@ open import Relation.Binary.PropositionalEquality
 
 open import Coexp.Prelude
 open import Coexp.Semantics
-open import Coexp.KappaStar.Syntax
+open import Coexp.KappaBar.Syntax
 
 open Cont R
 

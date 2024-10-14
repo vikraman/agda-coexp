@@ -1,4 +1,4 @@
-module Coexp.ZetaStar.Syntax where
+module Coexp.ZetaBar.Syntax where
 
 open import Coexp.Prelude
 open import Coexp.Meta.Prelude

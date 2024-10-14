@@ -1,4 +1,4 @@
-module Coexp.KappaStar.Syntax where
+module Coexp.KappaBar.Syntax where
 
 open import Coexp.Prelude
 open import Coexp.Meta.Prelude
