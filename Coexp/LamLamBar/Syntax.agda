@@ -192,6 +192,8 @@ data Ev (Γ : Ctx) (C : Ty) : Ty -> Set where
         ------------------------------------------------------------
         -> Γ ⊢ C ⇛ B
 
+-- other evaluation contexts are skipped
+
 infix 5 _[[_]]
 _[[_]] : (E : Γ ⊢ A ⇛ B) -> (e : Γ ⊢ A) -> Γ ⊢ B
 ø [[ e ]]          = e
@@ -233,7 +235,7 @@ data Eq (Γ : Ctx) : (A : Ty) -> Γ ⊢ A -> Γ ⊢ A -> Set where
             ----------------------------------------
             -> Γ ⊢ pair e1 e3 ≈ pair e2 e4 ∶ A `× B
 
-  -- and many more
+  -- and many more congruence rules but they're skipped
 
   -- generators
   -- pair beta
@@ -274,35 +276,40 @@ data Eq (Γ : Ctx) : (A : Ty) -> Γ ⊢ A -> Γ ⊢ A -> Set where
                 --------------------------------------------------------------------
                 -> Γ ⊢ case (inr v) e2 e3 ≈ sub-tm (sub-ex sub-id v) e3 ∶ C
 
-  -- sum eta
+  -- sum eta is skipped
 
-  -- coexponential beta: (~λx.e)v ≈ [v/x]e
+  -- cofunction beta: (λ̃x.e)v ≈ [v/x]e
   colam-beta : (e : (Γ ∙ A ̃) ⊢ B) -> (v : Γ ⊢ A ̃) {{ϕ : isVal v}}
              ----------------------------------------------------------
              -> Γ ⊢ coapp (colam e) v ≈ sub-tm (sub-ex sub-id v) e ∶ B
 
-  -- coexponential eta: (~λx.~ex) ≈ e
+  -- cofunction eta: (λ̃x.e@x) ≈ e
   colam-eta : (e : Γ ⊢ A `+ B)
             -------------------------------------------------
             -> Γ ⊢ colam (coapp (wk e) (var h)) ≈ e ∶ A `+ B
 
   -- control effects
+  -- λ̃x.e ≈ inr e
   colam-const : (e : Γ ⊢ B)
               -------------------------------------
               -> Γ ⊢ colam (wk e) ≈ inr e ∶ A `+ B
 
+  -- λ̃x.E[inr x @ e] ≈ inr E[e]
   colam-inr-pass : (e : Γ ⊢ B) (E : Γ ⊢ B ⇛ C)
                  ----------------------------------------------------------------------------------------------------
                  -> Γ ⊢ colam (wk-ev (wk-wk wk-id) E [[ coapp (inr (wk e)) (var h) ]]) ≈ inr (E [[ e ]]) ∶ A `+ C
 
+  -- λ̃x.E[inl x @ e] ≈ inr e
   colam-inl-jump : (e : Γ ⊢ A) (E : Γ ⊢ B ⇛ C)
                  ----------------------------------------------------------------------------------------------------
                  -> Γ ⊢ colam (wk-ev (wk-wk wk-id) E [[ coapp (inl (wk e)) (var h) ]]) ≈ inl e ∶ A `+ C
 
+  -- case (λ̃x.v, y.e1, z.e2) ≈ case (λ̃x.[v/z]e2, y.e1, z.z)
   case-colam-beta : (v : (Γ ∙ A ̃) ⊢ B) {{ϕ : isVal v}} -> (e1 : (Γ ∙ A) ⊢ C) (e2 : (Γ ∙ B) ⊢ C)
                   ---------------------------------------------------------------------------------------------------------------
                   -> Γ ⊢ case (colam v) e1 e2 ≈ case (colam (sub-tm (sub-ex (sub-wk (wk-wk wk-id) sub-id) v) e2)) e1 (var h) ∶ C
 
+  -- E[case (e, x.e1, y.e2)] ≈ case (e, x.E[e1], y.E[e2])
   case-zeta : (e : Γ ⊢ A `+ B) (e1 : (Γ ∙ A) ⊢ C) (e2 : (Γ ∙ B) ⊢ C) (E : Γ ⊢ C ⇛ D)
             ------------------------------------------------------------------------------------------------------------
             -> Γ ⊢ E [[ case e e1 e2 ]] ≈ case e (wk-ev (wk-wk wk-id) E [[ e1 ]]) (wk-ev (wk-wk wk-id) E [[ e2 ]]) ∶ D

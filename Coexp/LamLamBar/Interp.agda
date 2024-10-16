@@ -402,6 +402,7 @@ interpEq (≈-trans eq1 eq2) = trans (interpEq eq1) (interpEq eq2)
 interpEq (fst-cong eq) = cong (_； T.map proj₁) (interpEq eq)
 interpEq (snd-cong eq) = cong (_； T.map proj₂) (interpEq eq)
 interpEq (pair-cong eq1 eq2) = cong₂ (\f g -> < f , g > ； T.beta) (interpEq eq1) (interpEq eq2)
+
 interpEq (fst-beta v1 v2) =
   interpTm (pair v1 v2) ； T.map proj₁                                                                                 ≡⟨ cong (_； T.map proj₁) (interpVal-tm-coh (pair v1 v2)) ⟩
   interpVal (pair v1 v2) ； T.eta ； T.map proj₁                                                                       ≡⟨ refl ⟩
@@ -429,6 +430,7 @@ interpEq (unit-eta v) =
   interpVal unit ； T.eta                                                                                              ≡⟨ sym (interpVal-tm-coh unit) ⟩
   interpTm unit ∎
   where open ≡-Reasoning
+
 interpEq (lam-beta e v {{ϕ}}) =
   < curry (interpTm e) ； T.eta , interpTm v > ； T.beta ； T.map eval ； T.mu                                         ≡⟨ cong (\f -> < curry (interpTm e) ； T.eta , f > ； T.beta ； T.map eval ； T.mu) (interpVal-tm-coh v) ⟩
   < curry (interpTm e) ； T.eta , interpVal v ； T.eta > ； T.beta ； T.map eval ； T.mu                               ≡⟨ refl ⟩
@@ -449,6 +451,7 @@ interpEq (lam-eta v {{ϕ}}) =
   interpVal v ； T.eta                                                                                                 ≡⟨ sym (interpVal-tm-coh v) ⟩
   interpTm v ∎
   where open ≡-Reasoning
+
 interpEq (case-inl-beta v {{ϕ}} e2 e3) =
   < id , interpTm v ； T.map inj₁ > ； T.tau ； T.map distl ； T.map S.[ interpTm e2 , interpTm e3 ] ； T.mu           ≡⟨ cong (\f -> < id , f ； T.map inj₁ > ； T.tau ； T.map distl ； T.map S.[ interpTm e2 , interpTm e3 ] ； T.mu) (interpVal-tm-coh v) ⟩
   < id , interpVal v ； T.eta ； T.map inj₁ > ； T.tau ； T.map distl ； T.map S.[ interpTm e2 , interpTm e3 ] ； T.mu ≡⟨ refl ⟩
