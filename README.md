@@ -6,6 +6,10 @@ This is a formalisation of the calculi in The Duality of Abstraction.
 
 The source is automatically checked and hosted at: https://vikraman.github.io/agda-coexp/
 
+## Usage
+
+To check, load `Everything.agda`, or run `make`.
+
 ## Comments
 
 - The syntax is formalised in intrinsically well-scoped, well-typed style, or as second-order abstract syntax.
