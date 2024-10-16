@@ -2,6 +2,14 @@
 
 [![ci](https://github.com/vikraman/agda-coexp/actions/workflows/ci.yml/badge.svg)](https://github.com/vikraman/agda-coexp)
 
-Formalisation of some ideas related to continuations and co-exponentials, see [slides here](https://vikraman.org/files/lfcs23-coexp.pdf).
+This is a formalisation of the calculi in The Duality of Abstraction.
 
-Related: https://github.com/vikraman/coexp
+The source is automatically checked and hosted at: https://vikraman.github.io/agda-coexp/
+
+## Comments
+
+- The syntax is formalised in intrinsically well-scoped, well-typed style, or as second-order abstract syntax.
+- The interpretation is given directly into Agda's Set, extended with a continuation monad, assuming a response object R.
+- Function extensionality (with a computation rule) is required for the proofs, which is obtained by postulating an interval object.
+- Agda's rewriting mechanism is used to automate the use of coherence lemmas.
+- Some equations and evaluation contexts are skipped, because they are too tedious to formalise.
