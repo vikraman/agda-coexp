@@ -299,7 +299,7 @@ data Eq (Γ : Ctx) : (A : Ty) -> Γ ⊢ A -> Γ ⊢ A -> Set where
                  ----------------------------------------------------------------------------------------------------
                  -> Γ ⊢ colam (wk-ev (wk-wk wk-id) E [[ coapp (inr (wk e)) (var h) ]]) ≈ inr (E [[ e ]]) ∶ A `+ C
 
-  -- λ̃x.E[inl x @ e] ≈ inr e
+  -- λ̃x.E[inl x @ e] ≈ inl e
   colam-inl-jump : (e : Γ ⊢ A) (E : Γ ⊢ B ⇛ C)
                  ----------------------------------------------------------------------------------------------------
                  -> Γ ⊢ colam (wk-ev (wk-wk wk-id) E [[ coapp (inl (wk e)) (var h) ]]) ≈ inl e ∶ A `+ C
